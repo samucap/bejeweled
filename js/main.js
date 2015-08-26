@@ -7,11 +7,11 @@ function Grid(width, height, container){
 	
 //Creates my cells, and it populates it with jewels
 	this.populate = function(){
-		for (var i = 0; i < this.width; i++){
-			this.columns[i] = [];
-			for (var x = 0; x < this.height; x++){
-				var jewel = whichJewel(i, x);
-				this.columns[i].push(jewel);
+		for (var x = 0; x < this.width; x++){
+			this.columns[x] = [];
+			for (var i = 0; i < this.height; i++){
+				var jewel = whichJewel(x, i);
+				this.columns[x].push(jewel);
 			}
 		}
 	}
@@ -34,7 +34,7 @@ function Grid(width, height, container){
 				tile.addEventListener('click', this.move.bind(this) );
 				tile.setAttribute('data-column', i);
 				tile.setAttribute('data-cell', x)
-				tile.innerHTML = currentJewel.type;
+				tile.style.backgroundColor = currentJewel.type;
 				div.appendChild(tile);
 			}
 		}
@@ -42,73 +42,91 @@ function Grid(width, height, container){
 
 //Handler for click event on my cells
 	this.move = function(e){
-		var clickedElement = e.currentTarget;	
+		var clickedElement = e.currentTarget;
 		var columnIndex = parseInt( clickedElement.getAttribute('data-column') , 10 );
 		var cellIndex = parseInt( clickedElement.getAttribute('data-cell') , 10 );
-		var clickedJewel = this.columns[columnIndex][cellIndex];
-		var firstSquare = getFirstSquare(this);
-		console.log(firstSquare);
-		if(firstSquare){
+		var firstJewel = getFirstJewel(this);
+		var secondJewel;
+			
+		if(firstJewel){
 			// logic for second click
-			var secondSquare = clickedJewel;
-			console.log(secondSquare);
-			var fsType = firstSquare.type;
-			firstSquare.type = secondSquare.type;
-			secondSquare.type = fsType;
-			firstSquare.selected = false;
-			console.log(firstSquare.type);
-			console.log(secondSquare.type);
+			var secondJewel = this.columns[columnIndex][cellIndex];
+			
+			var fsType = firstJewel.type;
+			firstJewel.type = secondJewel.type;
+			secondJewel.type = fsType;
+	
+			var fsX = firstJewel.x;
+			firstJewel.x = secondJewel.x;
+			secondJewel.x = fsX;
+
+			var fsY = firstJewel.y;
+			firstJewel.y = secondJewel.y;
+			secondJewel.y = fsY;
+
 			this.render();
 
-		} else {
-			// logic for first click
-			clickedJewel.selected = true;
-			console.log(clickedJewel);
-			// function(index){
-			// 	console.log(index);
-			// }
-		}
+			firstJewel.selected = false;
+
+			console.log(firstJewel);
+			console.log(secondJewel);
+			firstJewel.check(firstJewel.x, firstJewel.y);
+			secondJewel.check(secondJewel.x, secondJewel.y);
+		} 
+
+		else {
+			var firstJewel = this.columns[columnIndex][cellIndex];
+			firstJewel.selected = true;
+			}
 	}
 }
 
 
 //Constructor for my jewels
 
-function Jewel (type, column, cell){
+function Jewel (type, x, y){
 	this.type = type;
+	this.x = x;
+	this.y = y;
 	this.selected = false;
-	this.column = column;
-	this.cell = cell;
+
+	this.check = function(x, y){
+				var cellsArray = document.getElementsByClassName('cell');
+				var x = parseInt(x, 10);
+				var y = parseInt(y, 10);
+				var indexCellsArray = x + y * 8;
+				console.log(indexCellsArray);
+	};
 }
 
 //randomizer for my different jewels
-function whichJewel(col, cell){
+function whichJewel(x, y){
 	var jewel;
 	var random = Math.random();
 	if (random < 0.2){
-		jewel = new Jewel('blue', col, cell);
+		jewel = new Jewel('blue', x, y);
 	}
 
 	else if ((random > 0.2) && (random < 0.4)){
-		jewel = new Jewel('red', col, cell);
+		jewel = new Jewel('red', x, y);
 	}
 
 	else if ((random > 0.4) && (random < 0.6)){
-		jewel = new Jewel('yellow', col, cell);
+		jewel = new Jewel('yellow', x, y);
 	}
 
 	else if ((random > 0.6) && (random < 0.8)){
-		jewel = new Jewel('green', col, cell);
+		jewel = new Jewel('green', x, y);
 	}
 
 	else {
-		jewel = new Jewel('white', col, cell);
+		jewel = new Jewel('white', x, y);
 	}
 	return jewel;
 };
 
-function getFirstSquare(board){
-	var selectedSquare = null;
+function getFirstJewel(board){
+	var selectedSquare;
 	for (var i = 0; i < board.columns.length; i++) {
 		for (var x = 0; x < board.columns[i].length; x++){
 			if (board.columns[i][x].selected == true) {
