@@ -63,8 +63,8 @@ function Grid(width, height, container){
 
 			this.selectedJewelPos = null;
 
-			this.render();
 			this.checkBoard();
+			this.render();
 
 		} 
 
@@ -86,9 +86,23 @@ function Grid(width, height, container){
 					currColor = currJewel.type;
 				
 				// Check left/right
+				// console.log(this.columns[i + 1][j], this.columns[i - 1][j];
 				if (i > 0 && i < 7){
 					if(currColor === this.columns[i + 1][j].type && currColor === this.columns[i - 1][j].type){
 						console.debug('horizontal: ', i, j, this.columns[i + 1][j], this.columns[i - 1][j] );
+						var middle = this.columns[i].splice(j, 1),
+						toLeft = this.columns[i - 1].splice(j, 1),
+						toRight = this.columns[i + 1].splice(j, 1);
+						
+						var newJewelOne = new Jewel('black');
+						var newJewelTwo = new Jewel('purple');
+						var newJewelThree = new Jewel('orange');
+
+						this.columns[i].unshift(newJewelOne);
+						this.columns[i - 1].unshift(newJewelTwo);
+						this.columns[i + 1].unshift(newJewelThree);
+
+						// console.debug('horizontal trio to be taken: ', horizontalTrio );
 					}
 				}
 
@@ -96,6 +110,14 @@ function Grid(width, height, container){
 				if (j > 0 && j < 7){
 					if(currColor === this.columns[i][j - 1].type && currColor === this.columns[i][j + 1].type){
 						console.debug('vertical: ', i, j, this.columns[i][j + 1], this.columns[i][j - 1] );
+						var center = this.columns[i].splice(j - 1, 3);
+
+						var vertJewelOne = new Jewel('pink');
+						var vertJewelTwo = new Jewel('brown');
+						var vertJewelThree = new Jewel('gray');
+
+						this.columns[i].unshift(vertJewelOne, vertJewelTwo, vertJewelThree);
+
 					}
 				}
 
@@ -124,27 +146,27 @@ function Jewel (type, x, y){
 }
 
 //randomizer for my different jewels
-function whichJewel(x, y){
+function whichJewel(){
 	var jewel;
 	var random = Math.random();
 	if (random < 0.2){
-		jewel = new Jewel('blue', x, y);
+		jewel = new Jewel('blue');
 	}
 
 	else if ((random > 0.2) && (random < 0.4)){
-		jewel = new Jewel('red', x, y);
+		jewel = new Jewel('red');
 	}
 
 	else if ((random > 0.4) && (random < 0.6)){
-		jewel = new Jewel('yellow', x, y);
+		jewel = new Jewel('yellow');
 	}
 
 	else if ((random > 0.6) && (random < 0.8)){
-		jewel = new Jewel('green', x, y);
+		jewel = new Jewel('green');
 	}
 
 	else {
-		jewel = new Jewel('white', x, y);
+		jewel = new Jewel('white');
 	}
 	return jewel;
 };
