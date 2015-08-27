@@ -61,26 +61,10 @@ function Grid(width, height, container){
 			= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
 			this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
 
-			//check();
-
 			this.selectedJewelPos = null;
 
-			this.checkBoard();
 			this.render();
-			// logic for second click
-			// var secondJewel = this.columns[columnIndex][cellIndex];
-			// console.log('second jewel ' , secondJewel);
-
-			// var temp = this.columns[secondJewel.x][secondJewel.y];
-			// this.columns[secondJewel.x][secondJewel.y] = this.columns[this.firstJewel.x][this.firstJewel.y];
-			// this.columns[this.firstJewel.x][this.firstJewel.y] = temp;
-
-
-			
-			// this.firstJewel.selected = false;
-			// this.firstJewel = "";
-			// this.render();
-
+			this.checkBoard();
 
 		} 
 
@@ -89,44 +73,40 @@ function Grid(width, height, container){
 			this.selectedJewelPos = [ columnIndex, cellIndex ];
 			console.debug('selectedJewelPos: ', this.selectedJewelPos );
 
-			// // logic for first click
-			// this.firstJewel = this.columns[columnIndex][cellIndex];
-			// console.log('first jewel ', this.firstJewel);
-			// this.firstJewel.selected = true;
 		}
 
 
-		// function horizontal(x){
-		// 	var right;
-		// 	var left;
-		// 	function (){
-		// 		return {right : columnIndex + 1,
-		// 				left : columnIndex - 1
-		// 			};
-		// 	}
-		// }
-
-		// function vertical(y){
-		// 	var up;
-		// 	var down;
-		// 	function(){
-		// 		return {top = cellIndex - 1,
-		// 				bottom = cellIndex + 1
-		// 			};
-		// 	}
-		// }
 
 	}
 
 	this.checkBoard = function() {
 		for (var i = 0; i < this.columns.length; i++){
 			for (var j = 0; j < this.columns[i].length; j++){
-				var currJewel = this.columns[i][j];
-					// currColor = currJewel.type
-				console.debug('currJewel: ', currJewel );
+				var currJewel = this.columns[i][j],
+					currColor = currJewel.type;
 				
+				// Check left/right
+				if (i > 0 && i < 7){
+					if(currColor === this.columns[i + 1][j].type && currColor === this.columns[i - 1][j].type){
+						console.debug('horizontal: ', i, j, this.columns[i + 1][j], this.columns[i - 1][j] );
+					}
+				}
 
+				// Check top/bottom
+				if (j > 0 && j < 7){
+					if(currColor === this.columns[i][j - 1].type && currColor === this.columns[i][j + 1].type){
+						console.debug('vertical: ', i, j, this.columns[i][j + 1], this.columns[i][j - 1] );
+					}
+				}
 
+							// // Check left
+				// if (i !== 0 && currColor === this.columns[i - 1][j].type && this.columns[i - 1][j].type === this.columns[i - 2][j].type){
+				// 	console.debug('leftTrio: ', currJewel, this.columns[i - 1][j], this.columns[i - 2][j] );
+				// }
+					// // Check Bottom
+					// if (j < 6 && currColor === this.columns[i][j + 1].type && this.columns[i][j + 1].type === this.columns[i][j + 2].type){
+					// 	console.debug('downTrio: ', currJewel, this.columns[i][j + 1], this.columns[i][j + 2] );
+					// }
 			}
 		}
 		this.render();
