@@ -1,17 +1,19 @@
 //Constructor function for my grid. By creating it using a constructor,
 //I can make an object out of every cell.
+
 function Grid(width, height, container){
 	this.width = width;
 	this.height = height;
 	this.columns = [];
+	this.selectedJewelPos = null;
 	
 //Creates my cells, and it populates it with jewels
 	this.populate = function(){
-		for (var x = 0; x < this.width; x++){
-			this.columns[x] = [];
-			for (var i = 0; i < this.height; i++){
-				var jewel = whichJewel(x, i);
-				this.columns[x].push(jewel);
+		for (var i = 0; i < this.width; i++){
+			this.columns[i] = [];
+			for (var j = 0; j < this.height; j++){
+				var jewel = whichJewel(i, j);
+				this.columns[i].push(jewel);
 			}
 		}
 	}
@@ -27,57 +29,107 @@ function Grid(width, height, container){
 			var div = document.createElement('div');
 			div.className = 'column';
 			container.appendChild(div);
-			for (var x = 0; x < this.height; x++){
-				var currentJewel = this.columns[i][x];
+			for (var j = 0; j < this.height; j++){
+				var currentJewel = this.columns[i][j];
 				var tile = document.createElement('div');
 				tile.className = "cell";
 				tile.addEventListener('click', this.move.bind(this) );
 				tile.setAttribute('data-column', i);
-				tile.setAttribute('data-cell', x)
+				tile.setAttribute('data-cell', j)
+				tile.innerHTML = i + ", " + j;
 				tile.style.backgroundColor = currentJewel.type;
 				div.appendChild(tile);
 			}
 		}
 	}
 
+
 //Handler for click event on my cells
 	this.move = function(e){
 		var clickedElement = e.currentTarget;
 		var columnIndex = parseInt( clickedElement.getAttribute('data-column') , 10 );
 		var cellIndex = parseInt( clickedElement.getAttribute('data-cell') , 10 );
-		var firstJewel = getFirstJewel(this);
-		var secondJewel;
-			
-		if(firstJewel){
-			// logic for second click
-			var secondJewel = this.columns[columnIndex][cellIndex];
-			
-			var fsType = firstJewel.type;
-			firstJewel.type = secondJewel.type;
-			secondJewel.type = fsType;
-	
-			var fsX = firstJewel.x;
-			firstJewel.x = secondJewel.x;
-			secondJewel.x = fsX;
+		if( this.selectedJewelPos ){
 
-			var fsY = firstJewel.y;
-			firstJewel.y = secondJewel.y;
-			secondJewel.y = fsY;
+			var secondClickedPos = [ columnIndex, cellIndex ];
+			console.debug('secondClickedPos: ', secondClickedPos );
+			
 
+			var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+			// console.debug('tempJewel: ', tempJewel );
+			this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
+			= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
+			this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+
+			//check();
+
+			this.selectedJewelPos = null;
+
+			this.checkBoard();
 			this.render();
+			// logic for second click
+			// var secondJewel = this.columns[columnIndex][cellIndex];
+			// console.log('second jewel ' , secondJewel);
 
-			firstJewel.selected = false;
+			// var temp = this.columns[secondJewel.x][secondJewel.y];
+			// this.columns[secondJewel.x][secondJewel.y] = this.columns[this.firstJewel.x][this.firstJewel.y];
+			// this.columns[this.firstJewel.x][this.firstJewel.y] = temp;
 
-			console.log(firstJewel);
-			console.log(secondJewel);
-			firstJewel.check(firstJewel.x, firstJewel.y);
-			secondJewel.check(secondJewel.x, secondJewel.y);
+
+			
+			// this.firstJewel.selected = false;
+			// this.firstJewel = "";
+			// this.render();
+
+
 		} 
 
-		else {
-			var firstJewel = this.columns[columnIndex][cellIndex];
-			firstJewel.selected = true;
+		else { //nothing selected
+
+			this.selectedJewelPos = [ columnIndex, cellIndex ];
+			console.debug('selectedJewelPos: ', this.selectedJewelPos );
+
+			// // logic for first click
+			// this.firstJewel = this.columns[columnIndex][cellIndex];
+			// console.log('first jewel ', this.firstJewel);
+			// this.firstJewel.selected = true;
+		}
+
+
+		// function horizontal(x){
+		// 	var right;
+		// 	var left;
+		// 	function (){
+		// 		return {right : columnIndex + 1,
+		// 				left : columnIndex - 1
+		// 			};
+		// 	}
+		// }
+
+		// function vertical(y){
+		// 	var up;
+		// 	var down;
+		// 	function(){
+		// 		return {top = cellIndex - 1,
+		// 				bottom = cellIndex + 1
+		// 			};
+		// 	}
+		// }
+
+	}
+
+	this.checkBoard = function() {
+		for (var i = 0; i < this.columns.length; i++){
+			for (var j = 0; j < this.columns[i].length; j++){
+				var currJewel = this.columns[i][j];
+					// currColor = currJewel.type
+				console.debug('currJewel: ', currJewel );
+				
+
+
 			}
+		}
+		this.render();
 	}
 }
 
@@ -86,17 +138,9 @@ function Grid(width, height, container){
 
 function Jewel (type, x, y){
 	this.type = type;
-	this.x = x;
-	this.y = y;
+	//this.x = x;
+	//this.y = y;
 	this.selected = false;
-
-	this.check = function(x, y){
-				var cellsArray = document.getElementsByClassName('cell');
-				var x = parseInt(x, 10);
-				var y = parseInt(y, 10);
-				var indexCellsArray = x + y * 8;
-				console.log(indexCellsArray);
-	};
 }
 
 //randomizer for my different jewels
@@ -125,17 +169,6 @@ function whichJewel(x, y){
 	return jewel;
 };
 
-function getFirstJewel(board){
-	var selectedSquare;
-	for (var i = 0; i < board.columns.length; i++) {
-		for (var x = 0; x < board.columns[i].length; x++){
-			if (board.columns[i][x].selected == true) {
-				selectedSquare = board.columns[i][x];
-			}
-		}
-	}
-	return selectedSquare;
-}
 
 //New instance of Grid being created
 var board = new Grid(8, 8, 'container');
