@@ -16,6 +16,7 @@ function Grid(width, height, container){
 				this.columns[i].push(jewel);
 			}
 		}
+		this.checkBoard();
 	}
 
 //Renders my grid on dom, while setting an event listener
@@ -41,113 +42,60 @@ function Grid(width, height, container){
 				div.appendChild(tile);
 			}
 		}
-		this.removeJewels();
-	}
-
-
-//Handler for click event on my cells
-	this.move = function(e){
-		var clickedElement = e.currentTarget;
-		var columnIndex = parseInt( clickedElement.getAttribute('data-column') , 10 );
-		var cellIndex = parseInt( clickedElement.getAttribute('data-cell') , 10 );
-	
-		if( this.selectedJewelPos ){
-			
-			var secondClickedPos = [ columnIndex, cellIndex ];
-			console.debug('secondClickedPos: ', secondClickedPos );
-
-			var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
-			// console.debug('tempJewel: ', tempJewel );
-			this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
-			= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
-			this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
-			
-			//WHAT IS NON-SWAPABLE
-
-			//this.checkForSequences(columnIndex, cellIndex);
-			this.render();
-			// this.checkBoard();
-			this.removeJewels();
-
-			// function toRight(){
-			// 	var toRight;
-				// console.debug("first jewel x: ", this.selectedJewelPos[0]);
-
-				// while (){
-				// 	toRight = this.columns[i][j].type;
-				// 	i ++;
-				// }
-				// console.debug("toRight: ", toRight);
-			// }
-			// toRight();
-
-			// if (this.checkBoard() == false){
-			// 	this.columns[ this.selectedJewelPos[0] ][this.selectedJewelPos[1] ] = this.columns[secondClickedPos[0]][secondClickedPos[1]];
-			// 	this.columns[secondClickedPos[0]][secondClickedPos[1]] = tempJewel;
-			// 	// setTimeout(this.render(), 500);
-			// }
-
-			this.selectedJewelPos = null;
-		}
-
-			else { //nothing selected
-
-			this.selectedJewelPos = [ columnIndex, cellIndex ];
-			//this.directions(columnIndex, cellIndex);
-			console.debug('selectedJewelPos: ', this.selectedJewelPos );
-			}
-
-
 	}
 
 
 	this.checkBoard = function() {
 		for (var i = 0; i < this.columns.length; i++){
 			for (var j = 0; j < this.columns[i].length; j++){
-			// var currJewel = this.columns[i][j],
-			// 	currColor = currJewel.type;
-			this.removeJewels();
+
+				this.checkForRight( i, j );
+				this.checkForDown( i, j );
+
+				if( this.columns[i][j].flaggedForRemoval){
+					console.debug("i: ", i, "j: ", j, this.columns[i][j].type);
+					this.columns[i].splice(j, 1);
+					var newJewel = new Jewel ('black');
+					this.columns[i].unshift(newJewel);
+				}
 			}
 		}
+		board.render();
 	}
 
 	//CHECK RIGHT
-	this.checkForRight = function(columnIndex, cellIndex){
+	this.checkForRight = function(columnIndex, rowIndex){
 		
-		var currJewel = this.columns[ columnIndex ][ cellIndex ],
+		var currJewel = this.columns[ columnIndex ][ rowIndex ],
 			columnIndex = columnIndex,
-			cellIndex = cellIndex;
+			rowIndex = rowIndex;
 
 		var rightIndex = columnIndex, 
 			rightCount = 0;
-		while( rightIndex <= 7 &&  currJewel.type === this.columns[ rightIndex ][ cellIndex ].type ) {
+		while( rightIndex <= 7 &&  currJewel.type === this.columns[ rightIndex ][ rowIndex ].type ) {
 			rightCount++;
 			if( rightCount === 3 ) {
-				this.columns[ rightIndex ][ cellIndex ].flaggedForRemoval = true;
-				this.columns[ rightIndex - 1 ][ cellIndex ].flaggedForRemoval = true;
-				this.columns[ rightIndex - 2 ][ cellIndex ].flaggedForRemoval = true;
+				this.columns[ rightIndex ][ rowIndex ].flaggedForRemoval = true;
+				this.columns[ rightIndex - 1 ][ rowIndex ].flaggedForRemoval = true;
+				this.columns[ rightIndex - 2 ][ rowIndex ].flaggedForRemoval = true;
 			}
 			else if( rightCount > 3 ){
-				this.columns[ rightIndex ][ cellIndex ].flaggedForRemoval = true;
+				this.columns[ rightIndex ][ rowIndex ].flaggedForRemoval = true;
 			}
 			rightIndex++;
 		}
-
 	}
 
 	//CHECK DOWN
-	this.checkForDown = function(columnIndex, cellIndex){
+	this.checkForDown = function(columnIndex, rowIndex){
 		
-		var currJewel = this.columns[ columnIndex ][ cellIndex ],
+		var currJewel = this.columns[ columnIndex ][ rowIndex ],
 			columnIndex = columnIndex,
-			cellIndex = cellIndex;
+			rowIndex = rowIndex;
 
-		var verticalIndex = cellIndex,
+		var verticalIndex = rowIndex,
 			vertCount = 0;
-			// console.log("verticalIndex: " + verticalIndex);
-			// console.log("currJewel: " + verticalIndex);
-			// console.log("columnIndex: " + columnIndex);
-			// console.log("this.columns " + this.columns[columnIndex][verticalIndex].type);
+
 		while( verticalIndex <= 7 && currJewel.type === this.columns[ columnIndex ][ verticalIndex ].type) {
 			vertCount++;
 			if( vertCount === 3){
@@ -160,108 +108,58 @@ function Grid(width, height, container){
 			}
 			verticalIndex++;
 		}
-
 	}
 			
-	this.removeJewels = function(){
-		for( var i = 0; i < this.columns.length; i++ ){
-			for( var j = 0; j < this.columns[i].length; j++){
-				var currJewel = this.columns[i][j];
-				this.checkForRight( i, j );
-				this.checkForDown( i, j );
-				if( currJewel.flaggedForRemoval ) {
-				console.debug("currJewel: ", currJewel, "i: ", i, "j: ", j);
-				this.columns[i].splice(j, 1);
-				// var newJewel = whichJewel();
-				// this.columns[i].unshift(newJewel);
-				// console.debug("removed item: ", this.columns[i].splice(j, 1), "i: ", i, "j: ", j);
-				}
-			}
+	// this.removeJewels = function(){
+	// 	for( var i = 0; i < this.columns.length; i++ ){
+	// 		for( var j = 0; j < this.columns[i].length; j++ ){
+	// 			if( this.columns[i][j].flaggedForRemoval ){
+	// 				// console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
+	// 				this.columns[i].splice(j, 1);
+	// 				var newJewel = whichJewel();
+	// 				this.columns[i].unshift(newJewel);
+	// 			}
+	// 		}
+	// 	}
+	// 	this.checkBoard();
+	// }
+
+	//Handler for click event on my cells
+	this.move = function(e){
+		var clickedElement = e.currentTarget;
+		var columnIndex = parseInt( clickedElement.getAttribute('data-column') , 10 );
+		var rowIndex = parseInt( clickedElement.getAttribute('data-cell') , 10 );
+	
+		if( this.selectedJewelPos ){
+			
+			var secondClickedPos = [ columnIndex, rowIndex ];
+			console.debug('secondClickedPos: ', secondClickedPos );
+
+			var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+			// console.debug('tempJewel: ', tempJewel );
+			this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
+			= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
+			this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+
+			this.checkBoard();
+
+			this.selectedJewelPos = null;
+
+			//WHAT IS NON-SWAPABLE
 		}
+
+			else { //nothing selected
+
+			this.selectedJewelPos = [ columnIndex, rowIndex ];
+			//this.directions(columnIndex, rowIndex);
+			console.debug('selectedJewelPos: ', this.selectedJewelPos );
+			}
+
+
 	}
-
-					
-			// 	// console.debug('currentJewel flagged: ', currJewel);
-
-			// 	console.debug('flaggedForRemoval: (' + i  + ',' + j + ')' );
-			// }
-				// Check left/right
-
-				// if (i > 0 && i < 7){
-				// 	if(currColor === this.columns[i + 1][j].type && currColor === this.columns[i - 1][j].type){
-				// 		console.debug('horizontal: ', i, j, this.columns[i + 1][j], this.columns[i - 1][j] );
-				// 		this.columns[i].splice(j, 1),
-				// 		this.columns[i - 1].splice(j, 1),
-				// 		this.columns[i + 1].splice(j, 1);
-						
-				// 		var newJewelOne = new Jewel('black');
-				// 		var newJewelTwo = new Jewel('orange');
-				// 		var newJewelThree = new Jewel('pink');
-
-				// 		this.columns[i].unshift(newJewelOne);
-				// 		this.columns[i - 1].unshift(newJewelTwo);
-				// 		this.columns[i + 1].unshift(newJewelThree);
-				// 	jewelRemove += 3;
-				// 	}
-				// }
-
-				// // Check top/bottom
-				// if (j > 0 && j < 7){
-				// 	if(currColor === this.columns[i][j - 1].type && currColor === this.columns[i][j + 1].type){
-				// 		console.debug('vertical: ', i, j, this.columns[i][j + 1], this.columns[i][j - 1] );
-				// 		var center = this.columns[i].splice(j - 1, 3);
-				// 		var vertJewelOne = new Jewel('purple');
-				// 		var vertJewelTwo = new Jewel('brown');
-				// 		var vertJewelThree = new Jewel('gray');
-
-				// 		this.columns[i].unshift(vertJewelOne, vertJewelTwo, vertJewelThree);
-						
-				// 		jewelRemove += 3;
-				// 	}
-
 
 }
  
-
-
-
-		//var startColumn = 7 - columnIndex;
-
-		
-		// while(startColumn++ <= 7){
-		// 	//var i = 7 - movesX;
-
-		// 	var rightJewel = this.columns[startColumn][j];
-		// 	if( currJewel.type === rightJewel.type ) {
-
-		// 	}
-		// 	//i++;
-		// }
-
-		//console.debug('this is i: ', i, ' and j: ', j);
-		//console.debug('toRight: ', toRight)
-
-
-		// while (8 - i > 0){
-		// 	var toRight = null;
-		// 	toRight = this.columns[i][j];
-		// 	i++;
-		// }
-	// }
-
-// 	this.directions = function (){
-// 		var i = ;
-// 		var j = 0;
-		
-	// 	function toRight(){
-	// 		var toRight;
-	// 		while (){
-	// 			toRight = this.columns[i][j].type;
-	// 			i ++;
-	// 		}
-	// 		console.debug("toRight: ", toRight);
-	// 	}
-	// }
 		
 
 //Constructor for my jewels
@@ -303,9 +201,3 @@ var board = new Grid(8, 8, 'container');
 
 
 board.populate();
-board.render();
-
-
-
-
-
