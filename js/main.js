@@ -44,23 +44,26 @@ function Grid(width, height, container){
 		}
 	}
 
-
 	this.checkBoard = function() {
 		for (var i = 0; i < this.columns.length; i++){
 			for (var j = 0; j < this.columns[i].length; j++){
-
 				this.checkForRight( i, j );
 				this.checkForDown( i, j );
-
-				if( this.columns[i][j].flaggedForRemoval){
-					console.debug("i: ", i, "j: ", j, this.columns[i][j].type);
-					this.columns[i].splice(j, 1);
-					var newJewel = new Jewel ('black');
-					this.columns[i].unshift(newJewel);
+				if ( this.columns[i][j].flaggedForRemoval ){
+					this.removeJewels(i, j);
 				}
 			}
 		}
 		board.render();
+	}
+
+	this.removeJewels = function(i, j){
+
+		// console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
+		this.columns[i].splice(j, 1);
+		var newJewel = whichJewel();
+		this.columns[i].unshift(newJewel);
+		this.checkBoard();
 	}
 
 	//CHECK RIGHT
@@ -109,20 +112,6 @@ function Grid(width, height, container){
 			verticalIndex++;
 		}
 	}
-			
-	// this.removeJewels = function(){
-	// 	for( var i = 0; i < this.columns.length; i++ ){
-	// 		for( var j = 0; j < this.columns[i].length; j++ ){
-	// 			if( this.columns[i][j].flaggedForRemoval ){
-	// 				// console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
-	// 				this.columns[i].splice(j, 1);
-	// 				var newJewel = whichJewel();
-	// 				this.columns[i].unshift(newJewel);
-	// 			}
-	// 		}
-	// 	}
-	// 	this.checkBoard();
-	// }
 
 	//Handler for click event on my cells
 	this.move = function(e){
@@ -159,8 +148,6 @@ function Grid(width, height, container){
 	}
 
 }
- 
-		
 
 //Constructor for my jewels
 
