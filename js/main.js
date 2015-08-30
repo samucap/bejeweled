@@ -59,7 +59,7 @@ function Grid(width, height, container){
 
 	this.removeJewels = function(i, j){
 
-		// console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
+		console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
 		this.columns[i].splice(j, 1);
 		var newJewel = whichJewel();
 		this.columns[i].unshift(newJewel);
@@ -123,13 +123,14 @@ function Grid(width, height, container){
 			
 			var secondClickedPos = [ columnIndex, rowIndex ];
 			console.debug('secondClickedPos: ', secondClickedPos );
+			if( ( secondClickedPos[0] === this.selectedJewelPos[0] + 1 && secondClickedPos[1] === this.selectedJewelPos[1] ) || ( secondClickedPos[0] === this.selectedJewelPos[0] - 1 && secondClickedPos[1] === this.selectedJewelPos[1] )
+			||  ( secondClickedPos[1] === this.selectedJewelPos[1] + 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) || ( secondClickedPos[1] === this.selectedJewelPos[1] - 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) ){
 
-			var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
-			// console.debug('tempJewel: ', tempJewel );
-			this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
-			= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
-			this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
-
+				var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+				this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
+				= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
+				this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+			}
 			this.checkBoard();
 
 			this.selectedJewelPos = null;
