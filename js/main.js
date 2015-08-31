@@ -42,6 +42,7 @@ function Grid(width, height, container){
 				div.appendChild(tile);
 			}
 		}
+		this.checkBoard();
 	}
 
 	this.checkBoard = function() {
@@ -50,20 +51,21 @@ function Grid(width, height, container){
 				this.checkForRight( i, j );
 				this.checkForDown( i, j );
 				if ( this.columns[i][j].flaggedForRemoval ){
+					console.log("Being removed: ", this.columns[i][j], "i: ", i, "j: ", j);
 					this.removeJewels(i, j);
 				}
 			}
 		}
-		board.render();
+
 	}
 
 	this.removeJewels = function(i, j){
 
-		console.debug ("i: ", i, "j: ", j, "color: ", this.columns[i][j].type, this.columns[i][j].flaggedForRemoval);
 		this.columns[i].splice(j, 1);
 		var newJewel = whichJewel();
+		console.log("column being added to: ", i)
 		this.columns[i].unshift(newJewel);
-		this.checkBoard();
+		board.render();
 	}
 
 	//CHECK RIGHT
@@ -132,6 +134,7 @@ function Grid(width, height, container){
 				this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
 				= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
 				this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+				
 				this.checkBoard();
 
 				if( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval === false && this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval === false ){
@@ -142,6 +145,11 @@ function Grid(width, height, container){
 
 					board.render();
 				}
+
+				else if ( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval || this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval ){
+					this.checkBoard();
+				}
+
 			}
 
 			this.selectedJewelPos = null;
