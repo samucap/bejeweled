@@ -123,29 +123,38 @@ function Grid(width, height, container){
 			
 			var secondClickedPos = [ columnIndex, rowIndex ];
 			console.debug('secondClickedPos: ', secondClickedPos );
+			
+			//WHAT IS NON-SWAPABLE
 			if( ( secondClickedPos[0] === this.selectedJewelPos[0] + 1 && secondClickedPos[1] === this.selectedJewelPos[1] ) || ( secondClickedPos[0] === this.selectedJewelPos[0] - 1 && secondClickedPos[1] === this.selectedJewelPos[1] )
 			||  ( secondClickedPos[1] === this.selectedJewelPos[1] + 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) || ( secondClickedPos[1] === this.selectedJewelPos[1] - 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) ){
-
+				
 				var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
 				this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
 				= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
 				this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+				this.checkBoard();
+
+				if( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval === false && this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval === false ){
+				
+					this.columns[ this.selectedJewelPos[0] ][this.selectedJewelPos[1] ]
+					= this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+					this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] = tempJewel;
+
+					board.render();
+				}
 			}
-			this.checkBoard();
 
 			this.selectedJewelPos = null;
 
-			//WHAT IS NON-SWAPABLE
 		}
+		
+		//nothing selected
+		else {
 
-			else { //nothing selected
-
-			this.selectedJewelPos = [ columnIndex, rowIndex ];
-			//this.directions(columnIndex, rowIndex);
-			console.debug('selectedJewelPos: ', this.selectedJewelPos );
-			}
-
-
+		this.selectedJewelPos = [ columnIndex, rowIndex ];
+		//this.directions(columnIndex, rowIndex);
+		console.debug('selectedJewelPos: ', this.selectedJewelPos );
+		}
 	}
 
 }
@@ -186,6 +195,5 @@ function whichJewel(){
 
 //New instance of Grid being created
 var board = new Grid(8, 8, 'container');
-
 
 board.populate();
