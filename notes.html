@@ -1,0 +1,109 @@
+// this.recolor = function(columnCount){
+	// 	// var cellArr,
+	// 	// 	colIndex,
+	// 	// 	cellIndex,
+	// 	var currJewel;
+
+
+	// 	for(var i = 0; i < columnCount.length; i++){
+	// 		var cellArr = columnCount[i].cellArray;
+	// 		if(cellArr.length > 0){
+	// 			// console.log('columnCount[i], ', columnCount[i]);
+	// 			var colIndex = columnCount[i].i;
+	// 			var cellIndex = cellArr[cellArr.length - 1];
+
+	// 			while(cellIndex >= 0){
+	// 				var currJewel = this.columns[colIndex][cellIndex];
+	// 				// var currCanvas = document.getElementById(colIndex + ", " + cellIndex);
+	// 				// var ctx = currCanvas.getContext('2d');
+	// 				// ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
+	// 				currJewel.drawJewel(currJewel, colIndex, cellIndex);
+					
+	// 				// ctx.fillStyle = currJewel.type;
+	// 				// ctx.fillRect(0, 0, currCanvas.width, currCanvas.height);
+
+	// 				// ctx.fillStyle = this.columns[colIndex][cellIndex].type;
+	// 				// ctx.fillRect(0, 25, currCanvas.width, currCanvas.height);
+	// 				// console.log("CURRACANVA: ", currCanvas);
+	// 				cellIndex--;
+	// 			}
+	// 		}
+	// 	}
+		
+	// }
+
+	
+
+	// //CHECK RIGHT
+	// this.checkMoveRight = function(){
+
+	// 	var columnIndex = 0,
+	// 		rowIndex = 0;
+		
+	// 	var nextJewel;
+			
+	// 	var rightIndex = 0; 
+	// 		rightCount = 0;
+
+	// 	for(var rowIndex = 0; rowIndex < 7; rowIndex++){
+
+
+	// 		while( rightIndex < 7 &&  this.columns[rightIndex][rowIndex].type === this.columns[ rightIndex + 1 ][ rowIndex ].type ) {
+	// 		// while( rightIndex <= 7 ) {
+
+	// 			rightCount++;
+	// 			if( rightCount === 3 ) {
+	// 				this.columns[ rightIndex ][ rowIndex ].flaggedForRemoval = true;
+	// 				this.columns[ rightIndex - 1 ][ rowIndex ].flaggedForRemoval = true;
+	// 				this.columns[ rightIndex - 2 ][ rowIndex ].flaggedForRemoval = true;
+	// 				// this.points += 10;
+
+	// 				this.cleanUp = true;
+	// 			}
+	// 			else if( rightCount > 3 ){
+	// 				this.columns[ rightIndex ][ rowIndex ].flaggedForRemoval = true;
+	// 				// this.points += 5;
+
+	// 			}
+	// 			rightIndex++;
+	// 		}
+	// 		rightIndex = 0;
+	// 		rightCount = 0;
+	// 	}
+	// }
+
+	// //CHECK DOWN
+	// this.checkMoveDown = function(){
+	// 	var	columnIndex = 0,
+	// 		rowIndex = 0;
+
+	// 	var verticalIndex = 0,
+	// 		vertCount = 0;
+
+	// 	var nextJewel;
+
+	// 	for(var columnIndex = 0; columnIndex < 7; columnIndex++){
+			
+
+
+	// 		while( verticalIndex < 7 && this.columns[columnIndex][verticalIndex].type === this.columns[ columnIndex ][ verticalIndex + 1 ].type) {
+	// 			vertCount++;
+	// 			if( vertCount === 3){
+	// 				this.columns[ columnIndex ][ verticalIndex ].flaggedForRemoval = true;
+	// 				this.columns[ columnIndex ][ verticalIndex - 1 ].flaggedForRemoval = true;
+	// 				this.columns[ columnIndex ][ verticalIndex - 2 ].flaggedForRemoval = true;
+	// 				// this.points += 10;
+
+	// 				this.cleanUp = true;
+	// 			}
+	// 			else if( vertCount > 3 ){
+	// 				this.columns[ columnIndex ][ verticalIndex ].flaggedForRemoval = true;
+	// 				// this.points += 5;
+
+	// 			}
+	// 			verticalIndex++;
+	// 		}
+	// 		verticalIndex = 0;
+	// 		vertCount = 0;
+	// 	}
+	// }
