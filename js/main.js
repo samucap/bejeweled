@@ -41,11 +41,23 @@ function Grid(width, height, container){
 	this.render = function(){
 
 		var container = document.createElement('div'),
+			pointsContain = document.createElement('div'),
+			timerContain = document.createElement('div'),
 			div,
 			currentJewel,
 			tile;
 		container.id = 'container';
+		pointsContain.id = 'points-contain';
+		timerContain.id = 'timer-contain';
+		pointsContain.innerHTML = this.points;
+		timerContain.innerHTML = 60;
+		timerContain.style.padding = '10px';
+		timerContain.style.display = 'inline-block';
+		timerContain.style.border = '1px solid black';
+		timerContain.addEventListener('click', this.startTime.bind(this));
 		document.body.appendChild(container);
+		document.body.appendChild(pointsContain);
+		document.body.appendChild(timerContain);
 		for (var i = 0; i < this.width; i++){
 				div = document.createElement('div');
 			div.id = 'columnId-' + i;
@@ -75,6 +87,22 @@ function Grid(width, height, container){
 		}
 		// this.checkBoard();
 	}
+
+	this.startTime = function(){
+		var timer = setInterval(boardTimer, 1000);
+		var time =60;
+		function boardTimer(){
+			var currTimer = document.getElementById('timer-contain');
+			time--;
+			currTimer.innerHTML = time;
+			if(time < 1){
+				clearInterval(timer);
+
+			}
+		}
+
+	}
+
 
 	this.checkBoard = function(){
 		for (var i = 0; i < this.columns.length; i++){
@@ -156,12 +184,7 @@ function Grid(width, height, container){
 					newJewel = whichJewel();
 					this.columns[i].unshift(newJewel);
 					currColumn.cellArray.push(j);
-					// columnCount.push(j);
-					// var currCanvas = document.getElementById(i + ", " + j);
-					// var ctx = currCanvas.getContext('2d');
-					// ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
-					// ctx.fillStyle = newJewel.type;
-					// ctx.fillRect(0, 0, currCanvas.width, currCanvas.height);	
+
 				}
 			}
 		}
@@ -191,10 +214,6 @@ function Grid(width, height, container){
 			var secondClickedPos = [ columnIndex, rowIndex ];
 			console.debug('secondClickedPos: ', secondClickedPos );
 
-			// var secondCanvas = document.getElementById(columnIndex + ", " + rowIndex);
-			// var ctxA = firstCanvas.getContext('2d');
-			// var ctxB = secondCanvas.getContext('2d');
-
 			var firstJewel = this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
 			var secondJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
 
@@ -210,35 +229,44 @@ function Grid(width, height, container){
 				firstJewel.drawJewel(secondJewel, secondClickedPos[0], secondClickedPos[1]);
 				secondJewel.drawJewel(firstJewel, this.selectedJewelPos[0], this.selectedJewelPos[1] );
 					
-				this.checkBoard();
-				
+				this.checkMove();
 
-				if( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval === false && this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval === false ){
-				
+				if(this.cleanUp){
+					this.points += 50;
+					this.updateScore();
+					this.needRemoval();
+				}
+				else if(this.cleanUp === null){
 					this.columns[ this.selectedJewelPos[0] ][this.selectedJewelPos[1] ]
 					= this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
 					this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] = tempJewel;
 
 					firstJewel.drawJewel(firstJewel, this.selectedJewelPos[0], this.selectedJewelPos[1]);
 					secondJewel.drawJewel(secondJewel, secondClickedPos[0], secondClickedPos[1] );
-
-					// board.render();
-
 				}
 
-				else if ( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval || this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval ){
-					// var first = this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
-					// var second = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
-					
-				}
+				// if( this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ].flaggedForRemoval === false || this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ].flaggedForRemoval === false ){
+				
+					// this.columns[ this.selectedJewelPos[0] ][this.selectedJewelPos[1] ]
+					// = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+					// this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] = tempJewel;
+
+					// firstJewel.drawJewel(firstJewel, this.selectedJewelPos[0], this.selectedJewelPos[1]);
+					// secondJewel.drawJewel(secondJewel, secondClickedPos[0], secondClickedPos[1] );
+				// }
+				
+				this.selectedJewelPos = null;
+				secondClickedPos = null;
+			}
+			else{
+				
 				this.selectedJewelPos = null;
 				secondClickedPos = null;
 
-
+				var canvasOne = document.getElementById(columnIndex + ", " + rowIndex);
+				var context = canvasOne.getContext('2d');
+				context.lineWidth = 0;
 			}
-
-			this.selectedJewelPos = null;
-			secondClickedPos = null;
 
 		}
 		
@@ -251,7 +279,7 @@ function Grid(width, height, container){
 			var ctx = firstCanvas.getContext('2d');
 			ctx.strokeStyle = '#9EFFFF';
 			ctx.beginPath();
-			ctx.lineWidth = 1;
+			ctx.lineWidth = 5;
 			ctx.strokeRect(0, 0, firstCanvas.width, firstCanvas.height);
 
 			
@@ -263,7 +291,22 @@ function Grid(width, height, container){
 		}
 	}
 
+	this.checkMove = function(){
+		
+		for (var i = 0; i < this.columns.length; i++){
+			for (var j = 0; j < this.columns[i].length; j++){
+				this.checkRight(i, j);
+				this.checkDown(i, j);
+			}
+		}
+	}
+
+	this.updateScore = function(){
+		var pointsContain = document.getElementById('points-contain');
+		pointsContain.innerHTML = this.points;
+	}
 }
+
 
 //Constructor for my jewels
 
