@@ -266,8 +266,8 @@ function Grid(width, height, container){
 
 //Constructor for my jewels
 
-function Jewel (typeIndex){
-	this.type = colors[Object.keys(colors)[typeIndex]];
+function Jewel (type){
+	this.type = type;
 
 	this.drawJewel = function(i, j){
 		var currCanvas = document.getElementById(i + ", " + j);
@@ -342,7 +342,7 @@ function whichJewel(){
   var max = Math.floor(6);
   var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
   
-  return new Jewel(randomNum);
+  return new Jewel(colors[Object.keys(colors)[randomNum]]);
 };
 
 var board = new Grid(8, 8, 'container');
