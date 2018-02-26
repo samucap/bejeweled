@@ -7,12 +7,20 @@ var colors = {
   white: '#F7F7FF',
   blue: '#65AFFF'
 }
-//const requestAnimationFrame = window.requestAnimationFrame ||
-//							window.mozRequestAnimationFrame ||
-//							window.webkitRequestAnimationFrame ||
-//							window.msRequestAnimationFrame;
-//
-//requestAnimationFrame(Grid)
+
+var requestAnimationFrame = window.requestAnimationFrame ||
+							window.mozRequestAnimationFrame ||
+							window.webkitRequestAnimationFrame ||
+							window.msRequestAnimationFrame;
+
+requestAnimationFrame(Grid)
+
+function checkMove(firstJewelPos, nextJewelPos) {
+  return (nextJewelPos[0] === firstJewelPos[0] + 1 && nextJewelPos[1] === firstJewelPos[1])
+  || (nextJewelPos[0] === firstJewelPos[0] - 1 && nextJewelPos[1] === firstJewelPos[1]) 
+  || (nextJewelPos[1] === firstJewelPos[1] + 1 && nextJewelPos[0] === firstJewelPos[0])
+  || (nextJewelPos[1] === firstJewelPos[1] - 1 && nextJewelPos[0] === firstJewelPos[0])
+}
 
 //Constructor function for my grid. By creating it using a constructor,
 //I can make an object out of every cell.
@@ -21,65 +29,88 @@ function Grid(width, height, container){
 	this.width = width;
 	this.height = height;
 	this.columns = [];
-	this.selectedJewelPos = null;
+	this.firstJewelPos = null;
 	this.cleanUp = null;
 	this.points = 0;
   this.loading = true;
+  this.toBeRemoved = {};
 	
 //Creates cells, and it populates it with jewels
   this.populate = function() {
-		var jewel;
-		for (var i = 0; i < this.width; i++){
-			this.columns[i] = [];
-			for (var j = 0; j < this.height; j++){
-				jewel = whichJewel();
-				this.columns[i].push(jewel);
-			}
-		}
+    var jewel, currCol, yIndex,
+      missing = 0;
+    if (this.columns.length === 0) {
+      for (var i = 0; i < this.width; i++){
+        this.columns[i] = [];
+        for (var j = 0; j < this.height; j++){
+          jewel = whichJewel(i, j);
+          this.columns[i].push(jewel);
+        }
+      }
+    } else {
+      for (var p = 0; p < this.width; p++) {
+        currCol = this.columns[p];
+        missing = this.height - currCol.length;
+
+        while (missing) {
+          yIndex = currCol.length;
+          jewel = whichJewel(p, yIndex);
+          currCol.push(jewel);
+        }
+      }
+    }
 		this.checkBoard();
 	}
 
   this.checkBoard = function(){
     var messageEl = document.getElementById('bannerMessage');
-    messageEl.innerHTML = 'LOADING TILES...';
+    var t = 0;
+    //messageEl.innerHTML = 'LOADING TILES...';
     this.loading = true;
-    var directions = ['x-axis', 'y-axis'];
-    directions.forEach(function(axis, indice) {
-      this.checkRows(axis, indice);
-    }.bind(this))
+    this.renderJewels();
+    while (t < 2) {
+      this.findTrios(t);
+      t++;
+    } 
+
+    console.log('hi', this)
     if (this.cleanUp) {
       this.needRemoval();
-      this.loading = false;
     } else {
-      this.loading = false;
-      messageEl.innerHTML = 'TILES LOADED';
+      console.log('fini')
+      //messageEl.innerHTML = 'TILES LOADED';
     }  
+    this.loading = false;
 	}
 
-  this.checkRows = function(flag, indice) {
+  this.findTrios = function(flag) {
     var currJewel, prevJewel, nextJewel,
       tripCounter, prevIndex, currIndex,
-      nextIndex;
+      nextIndex, y;
 
-    for (var y = 0; y < this.height; y++) {
+    y = 0;
+
+    while (y < this.height) {
       xIndex = 0;
       tripCounter = 0;
 
-      while (xIndex < this.width - 1) {
+      while (xIndex < this.width) {
         prevIndex = xIndex === 0 ? 0 : xIndex - 1;
         currIndex = xIndex;
         nextIndex = xIndex === this.width - 1 ? xIndex : xIndex + 1;
 
-        if (flag === 'x-axis') {
-          prevJewel = this.columns[prevIndex][y]
+        // checking horizontal trios
+        if (flag) {
+          prevJewel = this.columns[prevIndex][y];
           currJewel = this.columns[currIndex][y];
           nextJewel = this.columns[nextIndex][y];
         } else {
-          prevJewel = this.columns[y][prevIndex]
+          prevJewel = this.columns[y][prevIndex];
           currJewel = this.columns[y][currIndex];
           nextJewel = this.columns[y][nextIndex];
         }
-        if ((currJewel && nextJewel) && currJewel.type === nextJewel.type) {
+
+        if ((currJewel && nextJewel) && (currIndex !== nextIndex) && currJewel.type === nextJewel.type) {
           tripCounter++;
         } else {
           tripCounter = 0;
@@ -87,48 +118,70 @@ function Grid(width, height, container){
 
         if (tripCounter === 2) {
           this.cleanUp = true;
-          this.columns[prevIndex].splice(y, 1);
-          this.columns[currIndex].splice(y, 1);
-          this.columns[nextIndex].splice(y, 1);
-        }
-        else if (tripCounter > 2) {
-          this.columns[currIndex].splice(y, 1);
+          console.log('removing prev', prevJewel)
+          console.log('removing curr', currJewel)
+          console.log('removing next', nextJewel)
+          console.log('=====')
+          prevJewel.remove = true;
+          currJewel.remove = true;
+          nextJewel.remove = true;
+        } else if (tripCounter > 2) {
+          console.log('trip++', nextJewel)
+          nextJewel.remove = true;
         }
 
         xIndex++;
       }
+      y++;
     }
 	}
 
   this.needRemoval = function() {
-    this.restockJewels()
+    this.removeJewels()
+    this.renderJewels()
     this.cleanUp = false;
-    this.checkBoard();  
+    //this.checkBoard();  
 	}
 
-  this.restockJewels = function() {
+  this.removeJewels = function() {
     var newJewel;
-    var b;
+    var b, currCol;
 
-    for (var a = 0; a < this.columns.length; a++){
-      b = 0;
-      var missing = this.width - this.columns[a].length;
-      if (missing > 0) {
-        while (b < missing) {
-          newJewel = whichJewel();
-          this.columns[a].unshift(newJewel);
-          b++;
+    for (var a = 0; a < this.width; a++){
+      b = 7;
+      currCol = this.columns[a];
+      while (b >= 0) {
+        if (currCol[b] && currCol[b].remove) {
+          console.log('removing at', a, b)
+          currCol.splice(b, 1);
         }
+        b--;
       }
-    }
 
-    this.redraw();
+      //var missing = this.width - currCol.length;
+      //if (missing > 0) {
+      //  while (b < missing) {
+      //    newJewel = whichJewel();
+      //    this.columns[a].unshift(newJewel);
+      //    //newJewel.drawJewel();
+      //    b++;
+      //  }
+      //}
+    }
 	}
 
-  this.redraw = function(){
-		for(var i = 0; i < this.columns.length; i++){
-			for(var j = 0; j < this.columns[i].length; j++){
-				this.columns[i][j].drawJewel(i, j);	
+  this.renderJewels = function(){
+		for(var i = 0; i < this.width; i++){
+			for(var j = 0; j < this.height; j++){
+        if (this.columns[i][j]) {
+          this.columns[i][j].x = i;
+          this.columns[i][j].y = j;
+          this.columns[i][j].drawJewel();	
+        } else {
+          var currCanvas = document.getElementById(i + ", " + j);
+          var ctx = currCanvas.getContext('2d');
+          ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
+        }
 			}
 		}
 	}
@@ -154,27 +207,20 @@ function Grid(width, height, container){
 		document.body.appendChild(container);
 		document.body.appendChild(pointsContain);
 		document.body.appendChild(timerContain);
-		for (var i = 0; i < this.width; i++){
+    for (var i = 0; i < this.width; i++){
       div = document.createElement('div');
 			div.id = 'columnId-' + i;
 			div.className = 'column';
 			container.appendChild(div);
-			for (var j = 0; j < this.height; j++){
+      for (var j = 7; j >= 0; j--){
         tile = document.createElement('CANVAS');
 				tile.className = "cell";
 				tile.id = i + ", " + j;
-				tile.addEventListener('click', this.move.bind(this) );
+				tile.addEventListener('click', this.move.bind(this));
 				tile.setAttribute('width', 50);
 				tile.setAttribute('height', 50);
 				tile.setAttribute('data-column', i);
 				tile.setAttribute('data-cell', j);
-
-				// var ctx = tile.getContext('2d');
-				
-				// ctx.fillStyle = currentJewel.type;
-				// ctx.fillRect(0, 0, tile.width, tile.height);
-
-				tile.style.backgroundColor = '#002240';
 				div.appendChild(tile);
 			}
 		}
@@ -193,47 +239,46 @@ function Grid(width, height, container){
 		}
 	}
 
-	//Handler for click event on my cells
+  // logic for selecting jewels to swap
 	this.move = function(e){
+    var firstJewel, secondJewel;
 		var clickedElement = e.currentTarget;
-		var columnIndex = parseInt( clickedElement.getAttribute('data-column') , 10 );
-		var rowIndex = parseInt( clickedElement.getAttribute('data-cell') , 10 );
-		// var firstCanvas = document.getElementById(columnIndex + ", " + rowIndex);
+		var columnIndex = parseInt(clickedElement.getAttribute('data-column') , 10);
+		var rowIndex = parseInt(clickedElement.getAttribute('data-cell') , 10);
 	
-		if (this.selectedJewelPos && (firstColumnIndex !== columnIndex && firstRowIndex !== rowIndex)){
+		if (this.firstJewelPos && (firstColumnIndex !== columnIndex && firstRowIndex !== rowIndex)){
 			
-			var secondClickedPos = [ columnIndex, rowIndex ];
+			var secondClickedPos = [columnIndex, rowIndex];
 
-			var firstJewel = this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
-			var secondJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
+			firstJewel = this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]];
+			secondJewel = this.columns[secondClickedPos[0]][secondClickedPos[1]];
 
 			//WHAT IS NON-SWAPABLE
-			if( ( secondClickedPos[0] === this.selectedJewelPos[0] + 1 && secondClickedPos[1] === this.selectedJewelPos[1] ) || ( secondClickedPos[0] === this.selectedJewelPos[0] - 1 && secondClickedPos[1] === this.selectedJewelPos[1] )
-			||  ( secondClickedPos[1] === this.selectedJewelPos[1] + 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) || ( secondClickedPos[1] === this.selectedJewelPos[1] - 1 && secondClickedPos[0] === this.selectedJewelPos[0] ) ){
-				
-				var tempJewel = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
-				this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] 
-				= this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ];
-				this.columns[ this.selectedJewelPos[0] ][ this.selectedJewelPos[1] ] = tempJewel;
+			if (checkMove(this.firstJewelPos, secondClickedPos)) {
+				var tempJewel = this.columns[secondClickedPos[0]][secondClickedPos[1]];
+				this.columns[secondClickedPos[0]][secondClickedPos[1]] 
+				= this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]];
+
+				this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]] = tempJewel;
 					
 				firstJewel.drawJewel(secondClickedPos[0], secondClickedPos[1]);
-				secondJewel.drawJewel(this.selectedJewelPos[0], this.selectedJewelPos[1]);
+				secondJewel.drawJewel(this.firstJewelPos[0], this.firstJewelPos[1]);
 					
         // implement scoring
 				this.checkBoard();
 
-        this.columns[ this.selectedJewelPos[0] ][this.selectedJewelPos[1] ]
-        = this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ];
-        this.columns[ secondClickedPos[0] ][ secondClickedPos[1] ] = tempJewel;
+        this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]]
+        = this.columns[secondClickedPos[0]][secondClickedPos[1]];
 
-        firstJewel.drawJewel(this.selectedJewelPos[0], this.selectedJewelPos[1]);
+        this.columns[secondClickedPos[0]][secondClickedPos[1]] = tempJewel;
+
+        firstJewel.drawJewel(this.firstJewelPos[0], this.firstJewelPos[1]);
         secondJewel.drawJewel(secondClickedPos[0], secondClickedPos[1] );
 
-				this.selectedJewelPos = null;
+				this.firstJewelPos = null;
 				secondClickedPos = null;
-			}
-			else{
-				this.selectedJewelPos = null;
+			} else {
+				this.firstJewelPos = null;
 				secondClickedPos = null;
 
 				var canvasOne = document.getElementById(columnIndex + ", " + rowIndex);
@@ -241,12 +286,9 @@ function Grid(width, height, container){
 				context.lineWidth = 0;
 			}
 		}
-		
 		// first click
 		else {
 			var firstCanvas = document.getElementById(columnIndex + ", " + rowIndex);
-			var firstColumnIndex = columnIndex;
-			var firstRowIndex = rowIndex;
 
 			var ctx = firstCanvas.getContext('2d');
 			ctx.strokeStyle = '#9EFFFF';
@@ -254,7 +296,7 @@ function Grid(width, height, container){
 			ctx.lineWidth = 5;
 			ctx.strokeRect(0, 0, firstCanvas.width, firstCanvas.height);
 
-			this.selectedJewelPos = [ columnIndex, rowIndex ];
+			this.firstJewelPos = [columnIndex, rowIndex];
 		}
 	}
 
@@ -264,85 +306,86 @@ function Grid(width, height, container){
 	}
 }
 
-//Constructor for my jewels
-
-function Jewel (type){
+function Jewel (type, x, y){
 	this.type = type;
+  this.remove = false;
+  this.x = x;
+  this.y = y;
 
-	this.drawJewel = function(i, j){
-		var currCanvas = document.getElementById(i + ", " + j);
+	this.drawJewel = function(){
+		var currCanvas = document.getElementById(this.x + ", " + this.y);
 		var ctx = currCanvas.getContext('2d');
 		ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
     ctx.beginPath();
 
-    switch (this.type) {
-      case colors.purple:
-        moveTo(25, 0);
-        ctx.lineTo(50, 50);
-        ctx.lineTo(0, 50);
-        ctx.lineTo(25, 0);
-        ctx.closePath();
-      break;
+    //switch (this.type) {
+    //  case colors.purple:
+    //    moveTo(25, 0);
+    //    ctx.lineTo(50, 50);
+    //    ctx.lineTo(0, 50);
+    //    ctx.lineTo(25, 0);
+    //    ctx.closePath();
+    //  break;
 
-      case colors.yellow:
-        moveTo(25, 0);
-        ctx.lineTo( 50, 25 );
-        ctx.lineTo( 25, 50 );
-        ctx.lineTo( 0, 25 );
-        ctx.lineTo( 25, 0 );
-        ctx.closePath();
-      break;
+    //  case colors.yellow:
+    //    moveTo(25, 0);
+    //    ctx.lineTo( 50, 25 );
+    //    ctx.lineTo( 25, 50 );
+    //    ctx.lineTo( 0, 25 );
+    //    ctx.lineTo( 25, 0 );
+    //    ctx.closePath();
+    //  break;
 
-      case colors.green:
-        ctx.rect( 0, 0, 50, 50);
-        ctx.closePath();
-      break;
+    //  case colors.green:
+    //    ctx.rect( 0, 0, 50, 50);
+    //    ctx.closePath();
+    //  break;
 
-      case colors.red:
-        ctx.rect( 0, 0, 50, 50);
-        ctx.closePath();
-      break;
+    //  case colors.red:
+    //    ctx.rect( 0, 0, 50, 50);
+    //    ctx.closePath();
+    //  break;
 
-      case colors.orange:
-        moveTo( 0, 10 );
-        ctx.lineTo( 25, 0 );
-        ctx.lineTo( 50, 10 );
-        ctx.lineTo( 50, 40 );
-        ctx.lineTo( 25, 50 );
-        ctx.lineTo( 0,  40 );
-        ctx.lineTo( 0,  10 );
-        ctx.closePath();
-      break;
+    //  case colors.orange:
+    //    moveTo( 0, 10 );
+    //    ctx.lineTo( 25, 0 );
+    //    ctx.lineTo( 50, 10 );
+    //    ctx.lineTo( 50, 40 );
+    //    ctx.lineTo( 25, 50 );
+    //    ctx.lineTo( 0,  40 );
+    //    ctx.lineTo( 0,  10 );
+    //    ctx.closePath();
+    //  break;
 
-      case colors.white:
-        ctx.arc( 25, 25, 25, Math.PI * 2, false);
-    		ctx.closePath();
-      break;
+    //  case colors.white:
+    //    ctx.arc( 25, 25, 25, Math.PI * 2, false);
+    //		ctx.closePath();
+    //  break;
 
-      case colors.blue:
-        moveTo(0, 0);
-        ctx.lineTo(50, 0);
-        ctx.lineTo(25, 50);
-        ctx.lineTo(0, 0);
-        ctx.closePath();
-      break;
-    }
-    //ctx.font = '24px serif'
+    //  case colors.blue:
+    //    moveTo(0, 0);
+    //    ctx.lineTo(50, 0);
+    //    ctx.lineTo(25, 50);
+    //    ctx.lineTo(0, 0);
+    //    ctx.closePath();
+    //  break;
+    //}
+    ctx.font = '16px serif';
 		ctx.fillStyle = this.type;
-    //ctx.fillText(i + ', ' + j, 10, 30);
+    ctx.fillText(this.x + ', ' + this.y, 10, 10);
+    ctx.arc(0, 0, 5, Math.PI * 2, false);
+    ctx.closePath();
 		ctx.fill();
 	}
 }
 
 //randomizer for my different jewels
-function whichJewel(){
-	var jewel;
-	var random = Math.random();
+function whichJewel(x, y){
   var min = Math.ceil(0);
   var max = Math.floor(6);
   var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
   
-  return new Jewel(colors[Object.keys(colors)[randomNum]]);
+  return new Jewel(colors[Object.keys(colors)[randomNum]], x, y);
 };
 
 var board = new Grid(8, 8, 'container');
