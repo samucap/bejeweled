@@ -33,7 +33,6 @@ function Grid(width, height, container){
 	this.cleanUp = null;
 	this.points = 0;
   this.loading = true;
-  this.toBeRemoved = {};
 	
 //Creates cells, and it populates it with jewels
   this.populate = function() {
@@ -55,7 +54,9 @@ function Grid(width, height, container){
         while (missing) {
           yIndex = currCol.length;
           jewel = whichJewel(p, yIndex);
+          jewel.drawJewel();
           currCol.push(jewel);
+          missing--;
         }
       }
     }
@@ -67,7 +68,6 @@ function Grid(width, height, container){
     var t = 0;
     //messageEl.innerHTML = 'LOADING TILES...';
     this.loading = true;
-    this.renderJewels();
     while (t < 2) {
       this.findTrios(t);
       t++;
@@ -75,10 +75,12 @@ function Grid(width, height, container){
 
     console.log('hi', this)
     if (this.cleanUp) {
+      this.cleanUp = false;
       this.needRemoval();
     } else {
       console.log('fini')
       //messageEl.innerHTML = 'TILES LOADED';
+      this.renderJewels();
     }  
     this.loading = false;
 	}
@@ -137,9 +139,8 @@ function Grid(width, height, container){
 	}
 
   this.needRemoval = function() {
-    this.removeJewels()
-    this.renderJewels()
-    this.cleanUp = false;
+    this.removeJewels();
+    this.populate();
     //this.checkBoard();  
 	}
 
@@ -318,62 +319,59 @@ function Jewel (type, x, y){
 		ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
     ctx.beginPath();
 
-    //switch (this.type) {
-    //  case colors.purple:
-    //    moveTo(25, 0);
-    //    ctx.lineTo(50, 50);
-    //    ctx.lineTo(0, 50);
-    //    ctx.lineTo(25, 0);
-    //    ctx.closePath();
-    //  break;
+    switch (this.type) {
+      case colors.purple:
+        moveTo(25, 0);
+        ctx.lineTo(50, 50);
+        ctx.lineTo(0, 50);
+        ctx.lineTo(25, 0);
+        ctx.closePath();
+      break;
 
-    //  case colors.yellow:
-    //    moveTo(25, 0);
-    //    ctx.lineTo( 50, 25 );
-    //    ctx.lineTo( 25, 50 );
-    //    ctx.lineTo( 0, 25 );
-    //    ctx.lineTo( 25, 0 );
-    //    ctx.closePath();
-    //  break;
+      case colors.yellow:
+        moveTo(25, 0);
+        ctx.lineTo( 50, 25 );
+        ctx.lineTo( 25, 50 );
+        ctx.lineTo( 0, 25 );
+        ctx.lineTo( 25, 0 );
+        ctx.closePath();
+      break;
 
-    //  case colors.green:
-    //    ctx.rect( 0, 0, 50, 50);
-    //    ctx.closePath();
-    //  break;
+      case colors.green:
+        ctx.rect( 0, 0, 50, 50);
+        ctx.closePath();
+      break;
 
-    //  case colors.red:
-    //    ctx.rect( 0, 0, 50, 50);
-    //    ctx.closePath();
-    //  break;
+      case colors.red:
+        ctx.rect( 0, 0, 50, 50);
+        ctx.closePath();
+      break;
 
-    //  case colors.orange:
-    //    moveTo( 0, 10 );
-    //    ctx.lineTo( 25, 0 );
-    //    ctx.lineTo( 50, 10 );
-    //    ctx.lineTo( 50, 40 );
-    //    ctx.lineTo( 25, 50 );
-    //    ctx.lineTo( 0,  40 );
-    //    ctx.lineTo( 0,  10 );
-    //    ctx.closePath();
-    //  break;
+      case colors.orange:
+        moveTo( 0, 10 );
+        ctx.lineTo( 25, 0 );
+        ctx.lineTo( 50, 10 );
+        ctx.lineTo( 50, 40 );
+        ctx.lineTo( 25, 50 );
+        ctx.lineTo( 0,  40 );
+        ctx.lineTo( 0,  10 );
+        ctx.closePath();
+      break;
 
-    //  case colors.white:
-    //    ctx.arc( 25, 25, 25, Math.PI * 2, false);
-    //		ctx.closePath();
-    //  break;
+      case colors.white:
+        ctx.arc( 25, 25, 25, Math.PI * 2, false);
+    		ctx.closePath();
+      break;
 
-    //  case colors.blue:
-    //    moveTo(0, 0);
-    //    ctx.lineTo(50, 0);
-    //    ctx.lineTo(25, 50);
-    //    ctx.lineTo(0, 0);
-    //    ctx.closePath();
-    //  break;
-    //}
-    ctx.font = '16px serif';
+      case colors.blue:
+        moveTo(0, 0);
+        ctx.lineTo(50, 0);
+        ctx.lineTo(25, 50);
+        ctx.lineTo(0, 0);
+        ctx.closePath();
+      break;
+    }
 		ctx.fillStyle = this.type;
-    ctx.fillText(this.x + ', ' + this.y, 10, 10);
-    ctx.arc(0, 0, 5, Math.PI * 2, false);
     ctx.closePath();
 		ctx.fill();
 	}
