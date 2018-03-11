@@ -192,8 +192,8 @@ function Grid(width, height, container) {
 		//timerContain.style.border = '1px solid black';
 		//timerContain.addEventListener('click', this.startTime.bind(this));
 		document.body.appendChild(container);
-		document.body.appendChild(pointsContain);
-		document.body.appendChild(timerContain);
+    //document.body.appendChild(pointsContain);
+    //document.body.appendChild(timerContain);
     for (var i = 0; i < this.width; i++){
       div = document.createElement('div');
 			div.id = 'columnId-' + i;
