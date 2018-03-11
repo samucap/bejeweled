@@ -8,13 +8,6 @@ var colors = {
   blue: '#65AFFF'
 }
 
-var requestAnimationFrame = window.requestAnimationFrame ||
-							window.mozRequestAnimationFrame ||
-							window.webkitRequestAnimationFrame ||
-							window.msRequestAnimationFrame;
-
-requestAnimationFrame(Grid)
-
 function checkMove(firstJewelPos, nextJewelPos) {
   return (nextJewelPos[0] === firstJewelPos[0] + 1 && nextJewelPos[1] === firstJewelPos[1])
   || (nextJewelPos[0] === firstJewelPos[0] - 1 && nextJewelPos[1] === firstJewelPos[1]) 
@@ -25,7 +18,7 @@ function checkMove(firstJewelPos, nextJewelPos) {
 //Constructor function for my grid. By creating it using a constructor,
 //I can make an object out of every cell.
 
-function Grid(width, height, container){
+function Grid(width, height, container) {
 	this.width = width;
 	this.height = height;
 	this.columns = [];
@@ -39,7 +32,7 @@ function Grid(width, height, container){
     var jewel, currCol, yIndex,
       missing = 0;
     if (this.columns.length === 0) {
-      for (var i = 0; i < this.width; i++){
+      for (var i = 0; i < this.width; i++) {
         this.columns[i] = [];
         for (var j = 0; j < this.height; j++){
           jewel = whichJewel(i, j);
@@ -54,8 +47,8 @@ function Grid(width, height, container){
         while (missing) {
           yIndex = currCol.length;
           jewel = whichJewel(p, yIndex);
-          jewel.drawJewel();
           currCol.push(jewel);
+          jewel.drawJewel();
           missing--;
         }
       }
@@ -63,26 +56,31 @@ function Grid(width, height, container){
 		this.checkBoard();
 	}
 
-  this.checkBoard = function(){
+  this.checkBoard = function() {
     var messageEl = document.getElementById('bannerMessage');
     var t = 0;
-    //messageEl.innerHTML = 'LOADING TILES...';
-    this.loading = true;
-    while (t < 2) {
-      this.findTrios(t);
-      t++;
-    } 
 
-    console.log('hi', this)
-    if (this.cleanUp) {
-      this.cleanUp = false;
-      this.needRemoval();
-    } else {
-      console.log('fini')
-      //messageEl.innerHTML = 'TILES LOADED';
-      this.renderJewels();
-    }  
-    this.loading = false;
+    return new Promise(function(resolve, reject) {
+      this.loading = true;
+      while (t < 2) {
+        this.findTrios(t);
+        t++;
+      } 
+      resolve();
+    }.bind(this))
+    .then(function() {
+      if (this.cleanUp) {
+        this.cleanUp = false;
+        this.needRemoval();
+      } else {
+        console.log('fini')
+        this.renderJewels();
+        //messageEl.innerHTML = 'TILES LOADED';
+      }  
+      this.loading = false;
+      //messageEl.innerHTML = 'LOADING TILES...';
+
+    }.bind(this))
 	}
 
   this.findTrios = function(flag) {
@@ -158,20 +156,10 @@ function Grid(width, height, container){
         }
         b--;
       }
-
-      //var missing = this.width - currCol.length;
-      //if (missing > 0) {
-      //  while (b < missing) {
-      //    newJewel = whichJewel();
-      //    this.columns[a].unshift(newJewel);
-      //    //newJewel.drawJewel();
-      //    b++;
-      //  }
-      //}
     }
 	}
 
-  this.renderJewels = function(){
+  this.renderJewels = function() {
 		for(var i = 0; i < this.width; i++){
 			for(var j = 0; j < this.height; j++){
         if (this.columns[i][j]) {
@@ -187,24 +175,22 @@ function Grid(width, height, container){
 		}
 	}
 
-//Renders my grid on dom, while setting an event listener
-//to all my cells
-	this.render = function(){
+	this.render = function() {
 		var container = document.createElement('div'),
-			pointsContain = document.createElement('div'),
-			timerContain = document.createElement('div'),
+      //pointsContain = document.createElement('div'),
+      //timerContain = document.createElement('div'),
 			div,
 			currentJewel,
 			tile;
 		container.id = 'container';
-		pointsContain.id = 'points-contain';
-		timerContain.id = 'timer-contain';
-		pointsContain.innerHTML = this.points;
-		timerContain.innerHTML = 60;
-		timerContain.style.padding = '10px';
-		timerContain.style.display = 'inline-block';
-		timerContain.style.border = '1px solid black';
-		timerContain.addEventListener('click', this.startTime.bind(this));
+    //pointsContain.id = 'points-contain';
+    //timerContain.id = 'timer-contain';
+    //pointsContain.innerHTML = this.points;
+    //timerContain.innerHTML = 60;
+		//timerContain.style.padding = '10px';
+		//timerContain.style.display = 'inline-block';
+		//timerContain.style.border = '1px solid black';
+		//timerContain.addEventListener('click', this.startTime.bind(this));
 		document.body.appendChild(container);
 		document.body.appendChild(pointsContain);
 		document.body.appendChild(timerContain);
@@ -227,7 +213,7 @@ function Grid(width, height, container){
 		}
 	}
 
-	this.startTime = function(){
+	this.startTime = function() {
 		var timer = setInterval(boardTimer, 1000);
 		var time =60;
 		function boardTimer(){
@@ -241,13 +227,13 @@ function Grid(width, height, container){
 	}
 
   // logic for selecting jewels to swap
-	this.move = function(e){
+	this.move = function(e) {
     var firstJewel, secondJewel;
 		var clickedElement = e.currentTarget;
 		var columnIndex = parseInt(clickedElement.getAttribute('data-column') , 10);
 		var rowIndex = parseInt(clickedElement.getAttribute('data-cell') , 10);
 	
-		if (this.firstJewelPos && (firstColumnIndex !== columnIndex && firstRowIndex !== rowIndex)){
+		if (this.firstJewelPos && (columnIndex && rowIndex)){
 			
 			var secondClickedPos = [columnIndex, rowIndex];
 
@@ -256,28 +242,41 @@ function Grid(width, height, container){
 
 			//WHAT IS NON-SWAPABLE
 			if (checkMove(this.firstJewelPos, secondClickedPos)) {
-				var tempJewel = this.columns[secondClickedPos[0]][secondClickedPos[1]];
+				var tempJewel = secondJewel;
 				this.columns[secondClickedPos[0]][secondClickedPos[1]] 
-				= this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]];
+				= firstJewel;
 
 				this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]] = tempJewel;
 					
-				firstJewel.drawJewel(secondClickedPos[0], secondClickedPos[1]);
-				secondJewel.drawJewel(this.firstJewelPos[0], this.firstJewelPos[1]);
+        secondJewel.x = secondClickedPos[0];
+        secondJewel.y = secondClickedPos[1];
+        firstJewel.x = this.firstJewelPos[0]
+        firstJewel.y = this.firstJewelPos[1];
+
+        firstJewel.drawJewel();
+        secondJewel.drawJewel();
 					
+        //need to animate here
         // implement scoring
-				this.checkBoard();
+        this.checkBoard()
+          .then(function() {
+            if (!this.cleanUp) {
+              this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]]
+                = this.columns[secondClickedPos[0]][secondClickedPos[1]];
 
-        this.columns[this.firstJewelPos[0]][this.firstJewelPos[1]]
-        = this.columns[secondClickedPos[0]][secondClickedPos[1]];
+              this.columns[secondClickedPos[0]][secondClickedPos[1]] = tempJewel;
+              firstJewel.x = this.firstJewelPos[0];
+              firstJewel.y = this.firstJewelPos[1];
+              secondJewel.x = secondClickedPos[0]
+              secondJewel.y = secondClickedPos[1];
 
-        this.columns[secondClickedPos[0]][secondClickedPos[1]] = tempJewel;
+              firstJewel.drawJewel();
+              secondJewel.drawJewel();
+            }
 
-        firstJewel.drawJewel(this.firstJewelPos[0], this.firstJewelPos[1]);
-        secondJewel.drawJewel(secondClickedPos[0], secondClickedPos[1] );
-
-				this.firstJewelPos = null;
-				secondClickedPos = null;
+            this.firstJewelPos = null;
+            secondClickedPos = null;  
+          }.bind(this))
 			} else {
 				this.firstJewelPos = null;
 				secondClickedPos = null;
@@ -307,7 +306,7 @@ function Grid(width, height, container){
 	}
 }
 
-function Jewel (type, x, y){
+function Jewel(type, x, y) {
 	this.type = type;
   this.remove = false;
   this.x = x;
@@ -330,36 +329,36 @@ function Jewel (type, x, y){
 
       case colors.yellow:
         moveTo(25, 0);
-        ctx.lineTo( 50, 25 );
-        ctx.lineTo( 25, 50 );
-        ctx.lineTo( 0, 25 );
-        ctx.lineTo( 25, 0 );
+        ctx.lineTo(50, 25);
+        ctx.lineTo(25, 50);
+        ctx.lineTo(0, 25);
+        ctx.lineTo(25, 0);
         ctx.closePath();
       break;
 
       case colors.green:
-        ctx.rect( 0, 0, 50, 50);
+        ctx.rect(0, 0, 50, 50);
         ctx.closePath();
       break;
 
       case colors.red:
-        ctx.rect( 0, 0, 50, 50);
+        ctx.rect(0, 0, 50, 50);
         ctx.closePath();
       break;
 
       case colors.orange:
-        moveTo( 0, 10 );
-        ctx.lineTo( 25, 0 );
-        ctx.lineTo( 50, 10 );
-        ctx.lineTo( 50, 40 );
-        ctx.lineTo( 25, 50 );
-        ctx.lineTo( 0,  40 );
-        ctx.lineTo( 0,  10 );
+        moveTo(0, 10);
+        ctx.lineTo(25, 0);
+        ctx.lineTo(50, 10);
+        ctx.lineTo(50, 40);
+        ctx.lineTo(25, 50);
+        ctx.lineTo(0, 40);
+        ctx.lineTo(0, 10);
         ctx.closePath();
       break;
 
       case colors.white:
-        ctx.arc( 25, 25, 25, Math.PI * 2, false);
+        ctx.arc(25, 25, 25, Math.PI * 2, false);
     		ctx.closePath();
       break;
 
@@ -378,7 +377,7 @@ function Jewel (type, x, y){
 }
 
 //randomizer for my different jewels
-function whichJewel(x, y){
+function whichJewel(x, y) {
   var min = Math.ceil(0);
   var max = Math.floor(6);
   var randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
