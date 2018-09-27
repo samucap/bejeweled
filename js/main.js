@@ -26,6 +26,20 @@ function Grid(width, height, container) {
 	this.cleanUp = null;
 	this.points = 0;
   this.loading = true;
+
+  this.render = function() {
+		var container = document.createElement('div'),
+			div,
+			currentJewel,
+			currCanvas;
+		container.id = 'container';
+		document.body.appendChild(container);
+    currCanvas = document.createElement('CANVAS');
+    currCanvas.id = 'currCanvas';
+    currCanvas.setAttribute('width', 800);
+    currCanvas.setAttribute('height', 800);
+    container.appendChild(currCanvas);
+	}
 	
 //Creates cells, and it populates it with jewels
   this.populate = function() {
@@ -73,14 +87,13 @@ function Grid(width, height, container) {
         this.cleanUp = false;
         this.needRemoval();
       } else {
-        console.log('fini')
-        this.renderJewels();
         //messageEl.innerHTML = 'TILES LOADED';
       }  
+        this.renderJewels();
+        console.log('hellllooo', this.columns)
       this.loading = false;
       //messageEl.innerHTML = 'LOADING TILES...';
-
-    }.bind(this))
+    }.bind(this));
 	}
 
   this.findTrios = function(flag) {
@@ -98,7 +111,6 @@ function Grid(width, height, container) {
         prevIndex = xIndex === 0 ? 0 : xIndex - 1;
         currIndex = xIndex;
         nextIndex = xIndex === this.width - 1 ? xIndex : xIndex + 1;
-
         // checking horizontal trios
         if (flag) {
           prevJewel = this.columns[prevIndex][y];
@@ -139,7 +151,6 @@ function Grid(width, height, container) {
   this.needRemoval = function() {
     this.removeJewels();
     this.populate();
-    //this.checkBoard();  
 	}
 
   this.removeJewels = function() {
@@ -171,44 +182,6 @@ function Grid(width, height, container) {
           var ctx = currCanvas.getContext('2d');
           ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
         }
-			}
-		}
-	}
-
-	this.render = function() {
-		var container = document.createElement('div'),
-      //pointsContain = document.createElement('div'),
-      //timerContain = document.createElement('div'),
-			div,
-			currentJewel,
-			tile;
-		container.id = 'container';
-    //pointsContain.id = 'points-contain';
-    //timerContain.id = 'timer-contain';
-    //pointsContain.innerHTML = this.points;
-    //timerContain.innerHTML = 60;
-		//timerContain.style.padding = '10px';
-		//timerContain.style.display = 'inline-block';
-		//timerContain.style.border = '1px solid black';
-		//timerContain.addEventListener('click', this.startTime.bind(this));
-		document.body.appendChild(container);
-    //document.body.appendChild(pointsContain);
-    //document.body.appendChild(timerContain);
-    for (var i = 0; i < this.width; i++){
-      div = document.createElement('div');
-			div.id = 'columnId-' + i;
-			div.className = 'column';
-			container.appendChild(div);
-      for (var j = 7; j >= 0; j--){
-        tile = document.createElement('CANVAS');
-				tile.className = "cell";
-				tile.id = i + ", " + j;
-				tile.addEventListener('click', this.move.bind(this));
-				tile.setAttribute('width', 50);
-				tile.setAttribute('height', 50);
-				tile.setAttribute('data-column', i);
-				tile.setAttribute('data-cell', j);
-				div.appendChild(tile);
 			}
 		}
 	}
@@ -313,66 +286,71 @@ function Jewel(type, x, y) {
   this.y = y;
 
 	this.drawJewel = function(){
-		var currCanvas = document.getElementById(this.x + ", " + this.y);
+    var cellSize = 100;
+		var currCanvas = document.getElementById('currCanvas');
+    var startX = this.x === 0 ? 0 : this.x * cellSize;
+    var startY = this.y === 0 ? 0 : this.y * cellSize;
 		var ctx = currCanvas.getContext('2d');
-		ctx.clearRect(0, 0, currCanvas.width, currCanvas.height);
+		ctx.clearRect(startX, startY, cellSize, cellSize);
     ctx.beginPath();
-
+    moveTo(startX, startY);
     switch (this.type) {
+      //triangle
       case colors.purple:
-        moveTo(25, 0);
-        ctx.lineTo(50, 50);
-        ctx.lineTo(0, 50);
-        ctx.lineTo(25, 0);
-        ctx.closePath();
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + cellSize);
+        ctx.lineTo(startX, startY + cellSize);
+        ctx.lineTo(startX + cellSize / 2, startY);
       break;
 
+      // diamond
       case colors.yellow:
-        moveTo(25, 0);
-        ctx.lineTo(50, 25);
-        ctx.lineTo(25, 50);
-        ctx.lineTo(0, 25);
-        ctx.lineTo(25, 0);
-        ctx.closePath();
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + cellSize / 2);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY + cellSize / 2);
+        ctx.lineTo(startX + cellSize / 2, startY);
       break;
 
+      //square
       case colors.green:
-        ctx.rect(0, 0, 50, 50);
-        ctx.closePath();
+        ctx.rect(startX, startY, cellSize, cellSize);
       break;
 
+      //square
       case colors.red:
-        ctx.rect(0, 0, 50, 50);
-        ctx.closePath();
+        ctx.rect(startX, startY, cellSize, cellSize);
       break;
 
+      //hexa
       case colors.orange:
-        moveTo(0, 10);
-        ctx.lineTo(25, 0);
-        ctx.lineTo(50, 10);
-        ctx.lineTo(50, 40);
-        ctx.lineTo(25, 50);
-        ctx.lineTo(0, 40);
-        ctx.lineTo(0, 10);
-        ctx.closePath();
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + 20);
+        ctx.lineTo(startX + cellSize, startY + 40);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY + 40);
+        ctx.lineTo(startX, startY + 20);
+        ctx.lineTo(startX + cellSize / 2, startY);
       break;
 
+      // circle
       case colors.white:
-        ctx.arc(25, 25, 25, Math.PI * 2, false);
-    		ctx.closePath();
+        moveTo(startX, startY);
+        ctx.arc(startX + cellSize/2, startY + cellSize/2, cellSize/2, Math.PI * 2, false);
       break;
 
+      // down triangle
       case colors.blue:
-        moveTo(0, 0);
-        ctx.lineTo(50, 0);
-        ctx.lineTo(25, 50);
-        ctx.lineTo(0, 0);
-        ctx.closePath();
+        moveTo(startX, startY);
+        ctx.lineTo(startX + cellSize, startY);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY);
       break;
     }
-		ctx.fillStyle = this.type;
-    ctx.closePath();
+
+    ctx.fillStyle = this.type;
 		ctx.fill();
+    ctx.closePath();
 	}
 }
 
