@@ -1,0 +1,22 @@
+{
+  "name": "bejeweled",
+  "version": "1.0.0",
+  "description": "bejeweled",
+  "main": "js/new-main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samucapark/bejeweled.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/samucapark/bejeweled/issues"
+  },
+  "homepage": "https://github.com/samucapark/bejeweled#readme",
+  "dependencies": {
+    "chalk": "^3.0.0"
+  }
+}

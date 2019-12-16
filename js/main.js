@@ -36,10 +36,15 @@ function Grid(width, height, container) {
 		document.body.appendChild(container);
     currCanvas = document.createElement('CANVAS');
     currCanvas.id = 'currCanvas';
-    currCanvas.setAttribute('width', 800);
-    currCanvas.setAttribute('height', 800);
+    currCanvas.setAttribute('width', 640);
+    currCanvas.setAttribute('height', 640);
+    currCanvas.addEventListener('click', this.handleClick);
     container.appendChild(currCanvas);
 	}
+
+  this.handleClick = function(e) {
+    console.log('whatup ', e)
+  }
 	
 //Creates cells, and it populates it with jewels
   this.populate = function() {
@@ -88,11 +93,10 @@ function Grid(width, height, container) {
         this.needRemoval();
       } else {
         //messageEl.innerHTML = 'TILES LOADED';
-      }  
         this.renderJewels();
-        console.log('hellllooo', this.columns)
-      this.loading = false;
-      //messageEl.innerHTML = 'LOADING TILES...';
+        this.loading = false;
+        console.log("board ", this.columns)
+      }  
     }.bind(this));
 	}
 
@@ -278,22 +282,26 @@ function Grid(width, height, container) {
 		pointsContain.innerHTML = this.points;
 	}
 }
+var cellSize = 80;
 
 function Jewel(type, x, y) {
 	this.type = type;
   this.remove = false;
   this.x = x;
   this.y = y;
+  this.startSpace = this.x * cellSize + this.y * cellSize;
+  this.endSpace = ((this.x + 1) * cellSize + (this.y + 1) * cellSize);
 
 	this.drawJewel = function(){
-    var cellSize = 100;
 		var currCanvas = document.getElementById('currCanvas');
-    var startX = this.x === 0 ? 0 : this.x * cellSize;
-    var startY = this.y === 0 ? 0 : this.y * cellSize;
+    var startX = this.x * cellSize;
+    var startY = this.y * cellSize;
 		var ctx = currCanvas.getContext('2d');
+
 		ctx.clearRect(startX, startY, cellSize, cellSize);
     ctx.beginPath();
     moveTo(startX, startY);
+
     switch (this.type) {
       //triangle
       case colors.purple:
@@ -347,7 +355,7 @@ function Jewel(type, x, y) {
         ctx.lineTo(startX, startY);
       break;
     }
-
+    ctx.strokeRect(startX, startY, cellSize, cellSize);
     ctx.fillStyle = this.type;
 		ctx.fill();
     ctx.closePath();

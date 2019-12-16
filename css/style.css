@@ -1,14 +1,8 @@
-.cell {
-  padding:15px;
-
-  text-align: center;
-  display: block;
-
+body {
+  margin: 0;
 }
-
-.column {
-  display: inline-block;
-  background-color: #002240;
+#currCanvas {
+  border: 2px solid white;
 }
 
 #container {
