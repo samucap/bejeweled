@@ -11,6 +11,7 @@ module.exports = class Grid {
     this.columns = [];
     this.trash = [];
     this.prepareBoard();
+    console.log(`trash===${this.trash}`);
     this.printToConsole();
   }
 
@@ -18,7 +19,6 @@ module.exports = class Grid {
     this.populate();
     this.hTripsSeeker();
     this.vTripsSeeker();
-    console.log(`trash===${this.trash}`);
   }
 
   populate() {
@@ -59,62 +59,64 @@ module.exports = class Grid {
     container.appendChild(currCanvas);
   }
 
+  // need to test boundaries &&
   vTripsSeeker() {
     let j, currItem, z, next, marker;
     this.columns.forEach((currCol, x) => {
+      //console.log(`xxx>>>>>>>>> ${x}`);
       j = 0;
       marker = 0;
       while(j < this.width-2) {
         currItem = currCol[j];
-        next = currCol[++j]
-        console.log(`>comparing ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
-        if (currItem.type === next.type && currItem.type === currCol[j+1].type) {
-          console.log(`<<<<<< comparing ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
-          next = currCol[j+=2];
-          marker+= 3;
-          while(j < this.width && currItem.type === next.type) {
-            next = currCol[++j];
-            marker++;
-          }
+        next = currCol[j+1];
+        //console.log(`upj>>>>>>>>> ${j}`);
+        //console.log(`coll>>>>>>>>> ${JSON.stringify(currCol)}`);
+        //console.log(`curr>>>>>>>>> ${JSON.stringify(currItem)}`);
+        //console.log(`>comparing ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
 
-          console.log(`j>>>>>${j}`);
-          marker = j - marker;
-          console.log(`marker>>>>>${marker}`);
-          while(marker < j) {
-            console.log(`pushing==${x}-${marker}`);
-            this.trash.push(`${x}-${marker}`);
-            marker++;
+        if (currItem.type === next.type && (j+2 < this.width && currItem.type === currCol[j+2].type)) {
+          //console.log(`triooo <<<<<< ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
+          //console.log(`j>>>>>>>>> ${j}`);
+          //console.log(`marker>>>>>>>>> ${marker}`);
+          //console.log(`next>>>>>>>>> ${JSON.stringify(next)}`);
+          while(j < this.height && currItem.type === next.type) {
+            //console.log(`pushing==${x}-${j}`);
+            this.trash.push(`${x}-${j}`);
+            currItem = currCol[j++]
+            next = currCol[j];
           }
         }
+
+        j++;
       }
     });
   }
 
   hTripsSeeker() {
-    let j, currItem, z, next;
-    for(let y = 0; y < this.width; y++) {
-      z = 0;
-      while(z < this.height-2) {
-        currItem = this.columns[z][y];
-        if (currItem.type == this.columns[z+1][y].type &&
-          currItem.type === this.columns[z+2][y].type) {
-          console.log(`htrio at ${z}-${y}`);
-          this.trash.push(`${z}-${y}`);
-          this.trash.push(`${z+1}-${y}`);
-          this.trash.push(`${z+2}-${y}`);
-          z+=3;
-          if (z < this.height-2) {
-            next = this.columns[z][y];
-            while(z < this.width-1 && currItem.type === next.type) {
-              console.log('hquad');
-              this.trash.push(`${next.x}-${next.y}`);
-              next = this.columns[++z][y];
-            }
-          }
-        } else {
-          z++;
-        }
-      }
-    }
+    //let j, currItem, z, next;
+    //for(let y = 0; y < this.width; y++) {
+    //  z = 0;
+    //  while(z < this.height-2) {
+    //    currItem = this.columns[z][y];
+    //    if (currItem.type == this.columns[z+1][y].type &&
+    //      currItem.type === this.columns[z+2][y].type) {
+    //      console.log(`htrio at ${z}-${y}`);
+    //      this.trash.push(`${z}-${y}`);
+    //      this.trash.push(`${z+1}-${y}`);
+    //      this.trash.push(`${z+2}-${y}`);
+    //      z+=3;
+    //      if (z < this.height-2) {
+    //        next = this.columns[z][y];
+    //        while(z < this.width-1 && currItem.type === next.type) {
+    //          console.log('hquad');
+    //          this.trash.push(`${next.x}-${next.y}`);
+    //          next = this.columns[++z][y];
+    //        }
+    //      }
+    //    } else {
+    //      z++;
+    //    }
+    //  }
+    //}
   }
 }
