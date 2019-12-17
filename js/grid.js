@@ -1,15 +1,17 @@
 const chalk = require('chalk');
+
 const Jewel = require('./jewel');
 
-class Grid {
-  constructor(width, height) {
+module.exports = class Grid {
+  constructor(width, height, testing) {
     this.width = width;
     this.height = height;
-    this.columns = [];
+    this.testing = testing;
     this.ready = false;
+    this.columns = [];
     this.trash = [];
     this.prepareBoard();
-    this.printBoard();
+    this.printToConsole();
   }
 
   prepareBoard() {
@@ -19,7 +21,16 @@ class Grid {
     console.log(`trash===${this.trash}`);
   }
 
-  printBoard() {
+  populate() {
+    for(let x = 0; x < this.width; x++) {
+      this.columns.push([]);
+      for(let y = 0; y < this.height; y++) {
+        this.columns[x].push(new Jewel(x, y, this.testing));
+      }
+    }
+  }
+
+  printToConsole() {
     let column = ``;
     let counter = 0;
     let z, currJewel;
@@ -28,9 +39,10 @@ class Grid {
       if (y < this.height) column += `\n`;
       while(z < this.width) {
         currJewel = this.columns[z++][y];
-        column += `${chalk.hex(currJewel.type).bold(`${currJewel.x}, ${currJewel.y}`)}${z > 0 ? `   ` : ''}`;
+        column += `${chalk.hex(currJewel.type).bold(`JEWEL: ${currJewel.x}, ${currJewel.y}`)}${z > 0 ? `   ` : ''}`;
       }
     }
+
     console.log(column);
   }
 
@@ -47,37 +59,32 @@ class Grid {
     container.appendChild(currCanvas);
   }
 
-  populate() {
-    for(let x = 0; x < this.width; x++) {
-      this.columns.push([]);
-      for(let y = 0; y < this.height; y++) {
-        this.columns[x].push(new Jewel(x, y));
-      }
-    }
-  }
   vTripsSeeker() {
-    let j, currItem, z, next;
+    let j, currItem, z, next, marker;
     this.columns.forEach((currCol, x) => {
       j = 0;
+      marker = 0;
       while(j < this.width-2) {
         currItem = currCol[j];
-        if (currItem.type === currCol[j+1].type &&
-          currItem.type === currCol[j+2].type) {
-          console.log(`vtrio at ${x}-${j}`);
-          this.trash.push(`${x}-${j}`);
-          this.trash.push(`${x}-${j+1}`);
-          this.trash.push(`${x}-${j+2}`);
-          j+=3;
-          if (j < this.width-2) {
-            next = currCol[j];
-            while(j < this.width-1 && currItem.type === next.type) {
-              console.log('vquad',j);
-              this.trash.push(`${next.x}-${next.y}`);
-              next = currCol[++j];
-            }
+        next = currCol[++j]
+        console.log(`>comparing ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
+        if (currItem.type === next.type && currItem.type === currCol[j+1].type) {
+          console.log(`<<<<<< comparing ${currItem.x}, ${currItem.y} vs ${next.x}, ${next.y}`);
+          next = currCol[j+=2];
+          marker+= 3;
+          while(j < this.width && currItem.type === next.type) {
+            next = currCol[++j];
+            marker++;
           }
-        } else {
-          j++;
+
+          console.log(`j>>>>>${j}`);
+          marker = j - marker;
+          console.log(`marker>>>>>${marker}`);
+          while(marker < j) {
+            console.log(`pushing==${x}-${marker}`);
+            this.trash.push(`${x}-${marker}`);
+            marker++;
+          }
         }
       }
     });
@@ -111,5 +118,3 @@ class Grid {
     }
   }
 }
-
-const newGrid = new Grid(8, 8);

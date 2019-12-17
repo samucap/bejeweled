@@ -3,26 +3,36 @@ const colors = {
   purple: '#A500EB',
   green: '#008314',
   yellow: '#F3B700',
-  red: '#FF0050',
-  orange: '#FF4600',
+  red: '#991A00',
+  orange: '#ff0000',
   white: '#F7F7FF',
   blue: '#65AFFF'
 };
 
 module.exports = class Jewel {
-  constructor(x, y) {
+  constructor(x, y, testing) {
     this.x = x;
     this.y = y;
     this.startSpace = this.x * cellSize + this.y * cellSize;
     this.endSpace = ((this.x + 1) * cellSize + (this.y + 1) * cellSize);
-    this.whichJewel();
+    if (testing) {
+      if (x === 1 && y < 4)
+        this.whichJewel(5);
+      else if (x === 3 && y > 4)
+        this.whichJewel(3);
+      else if ((x > 2 && x < 7) && y === 4)
+        this.whichJewel(1);
+      else
+        this.whichJewel();
+    } else
+      this.whichJewel();
   }
 
-  whichJewel() {
+  whichJewel(num) {
     const min = Math.ceil(0);
     const max = Math.floor(6);
     const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-    this.type = colors[Object.keys(colors)[randomNum]];
+    this.type = colors[Object.keys(colors)[num ? num : randomNum]];
   }
 
   //this.drawJewel = function(){
