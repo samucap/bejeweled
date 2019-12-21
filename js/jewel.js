@@ -10,33 +10,24 @@ const colors = {
 };
 
 module.exports = class Jewel {
-  constructor(x, y, testing) {
+  constructor(x, y) {
     this.x = x;
     this.y = y;
     this.startSpace = this.x * cellSize + this.y * cellSize;
     this.endSpace = ((this.x + 1) * cellSize + (this.y + 1) * cellSize);
-    this.whichJewel(x, y, testing);
+    this.whichJewel(x, y);
+    this.remove = false;
   }
 
-  whichJewel(x, y, testing) {
-    let num;
-    if (testing) {
-      if (x === 1 && y < 4)
-        num = 5;
-      else if (x === 3 && y > 4)
-        num = 3;
-      else if ((x > 2 && x < 7) && y === 4)
-        num = 1;
-    }
-
+  whichJewel(x, y) {
     const min = Math.ceil(0);
     const max = Math.floor(6);
     const randomNum = Math.floor(Math.random() * (max - min + 1)) + min;
-    this.type = colors[Object.keys(colors)[num ? num : randomNum]];
+    this.type = colors[Object.keys(colors)[randomNum]];
   }
 
-  specificJewel(x, y, num) {
-    this.type = colors[Object.keys(colors)[num]];
+  changeType(type) {
+    this.type = colors[type];
   }
 
   //this.drawJewel = function(){
