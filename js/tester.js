@@ -14,7 +14,7 @@ const Grid = require('./grid');
 
 /////////////////////
 // test vTripsSeeker()
-const vTripsGrid = new Grid(8, 8, true);
+const vTripsGrid = new Grid(8, 8);
 //const columns = vTripsGrid.columns;
 //
 //vTripsGrid.vTripsSeeker();

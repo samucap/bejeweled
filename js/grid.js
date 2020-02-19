@@ -112,7 +112,7 @@ module.exports = class Grid {
       curr.remove = true;
       prev = this.columns[colIdx][rowIdx];
     // seeking trips
-    } else if (curr.type === this.columns[colIdx][rowIdx+1].type
+    } else if (rowIdx < this.height-2 && curr.type === this.columns[colIdx][rowIdx+1].type
       && curr.type === this.columns[colIdx][rowIdx+2].type) {
       while(i < 3) {
         if (!this.columns[colIdx][rowIdx+i].remove) {
@@ -173,7 +173,7 @@ module.exports = class Grid {
 
       curr.remove = true;
       prev = this.columns[colIdx][rowIdx];
-    } else if (curr.type === this.columns[colIdx+1][rowIdx].type
+    } else if (colIdx < this.height-2 && curr.type === this.columns[colIdx+1][rowIdx].type
       && curr.type === this.columns[colIdx+2][rowIdx].type) {
       while(i < 3) {
         if (!this.columns[colIdx+i][rowIdx].remove) {
