@@ -1,5 +1,5 @@
+'use strict';
 const chalk = require('chalk');
-
 const Jewel = require('./jewel');
 
 module.exports = class Grid {
@@ -16,10 +16,11 @@ module.exports = class Grid {
 
   prepareBoard() {
     if (!this.testing) this.populate();
-    else this.populateTest();
-    this.printToConsole();
-    //this.hTripsSeeker(0);
+    else {
+      this.populateTest();
+    }
     this.tripsSeeker();
+    //this.printToConsole();
   }
 
   populate() {
@@ -38,7 +39,7 @@ module.exports = class Grid {
       this.columns.push([]);
       for(let y = 0; y < this.height; y++) {
         currJewel = new Jewel(x, y);
-        if (x < 3 && y < 3) {
+        if (x < 3 && y < 4) {
           currJewel.changeType('red');
         } else if ((x > 3 && x <= 6) && (y > 3 && y <= 6)) {
           currJewel.changeType('blue');
@@ -52,7 +53,7 @@ module.exports = class Grid {
     let column = ``;
     let counter = 0;
     let z, currJewel;
-    for(let y = this.height - 1; y >= 0; y--) {
+    for(let y = 0; y < this.height; y++) {
       z = 0;
       if (y < this.height) column += `\n`;
       while(z < this.width) {
@@ -77,45 +78,54 @@ module.exports = class Grid {
     container.appendChild(currCanvas);
   }
 
-  checkTrips(currItem, next, currCol, idx) {
-    //console.log(`curr>>>>>>>>> ${JSON.stringify(currItem)}`);
-    //console.log(`next>>>>>>>>> ${JSON.stringify(next)}`);
-    if (idx+2 < this.height && currItem.type === next.type && currItem.type === currCol[idx+2].type) {
-      // remove attr instead of array of to remove because two trips in one column
-      // it will remove wrong indexing after first removes
-      currItem.remove = true;
-      next.remove = true;
-      idx+=2;
-      currCol[idx].remove = true;
-      currItem = currCol[idx];
-      next = currCol[idx+1];
-      this.checkTrips(currItem, next, currCol, idx);
-    } else {
-      idx+=3;
-      return;
+  tripsSeeker(levels = 0) {
+    if (levels < this.width) {
+      this.vTripsSeeker(levels, 0);
+      this.hTripsSeeker(0, levels);
+      this.tripsSeeker(++levels);
     }
   }
 
-  // need to test boundaries &&
-  vTripsSeeker() {
-    let j, currItem, next;
-    this.columns.forEach((currCol) => {
-      j = 0;
-      while(j < this.width-2) {
-        currItem = currCol[j];
-        next = currCol[j+1];
-        this.checkTrips(currItem, next, currCol, j++);
-      }
-    });
-  }
-  
-  tripsSeeker(colIdx = 0, rowIdx = 0) {
-    let currArr;
+  vTripsSeeker(colIdx = 0, rowIdx = 0) {
+    let curr, prev;
+    console.log(`verticaldoing ====== ${colIdx}, ${rowIdx}`);
+    prev = rowIdx !== 0 ? this.columns[colIdx][rowIdx-1] : null;
+    curr = this.columns[colIdx][rowIdx];
 
-    if (colIdx < this.width) {
-      currArr = this.columns[colIdx]; 
-      this.checkTrips(currArr[rowIdx], currArr[rowIdx+1], currArr, rowIdx);
-      this.tripsSeeker(++colIdx, rowIdx);
+    if (prev && prev.remove && prev.type === curr.type) {
+      curr.remove = true;
+    } else if (curr.type === this.columns[colIdx][rowIdx+1].type
+      && curr.type === this.columns[colIdx][rowIdx+2].type) {
+      curr.remove = true;
+      this.columns[colIdx][rowIdx+1].remove = true;
+      this.columns[colIdx][rowIdx+2].remove = true;
+      rowIdx+=2;
     }
+
+    rowIdx++;
+    if (rowIdx <= this.height-3
+      || (this.columns[colIdx][rowIdx] && curr.type === this.columns[colIdx][rowIdx].type))
+      this.vTripsSeeker(colIdx, rowIdx);
+  }
+
+  hTripsSeeker(colIdx = 0, rowIdx = 0) {
+    let curr, prev;
+    console.log(`hor====== ${colIdx}, ${rowIdx}`);
+    prev = colIdx !== 0 ? this.columns[colIdx-1][rowIdx] : null;
+    curr = this.columns[colIdx][rowIdx];
+
+    if (prev && prev.remove && prev.type === curr.type) {
+      curr.remove = true;
+    } else if (curr.type === this.columns[colIdx+1][rowIdx].type
+      && curr.type === this.columns[colIdx+2][rowIdx].type) {
+      curr.remove = true;
+      this.columns[colIdx+1][rowIdx].remove = true;
+      this.columns[colIdx+=2][rowIdx].remove = true;
+    }
+
+    colIdx++;
+    if (colIdx <= this.width-3
+      || (this.columns[colIdx] && curr.type === this.columns[colIdx][rowIdx].type))
+      this.hTripsSeeker(colIdx, rowIdx);
   }
 }
