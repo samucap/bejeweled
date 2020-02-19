@@ -1,12 +1,12 @@
 const cellSize = 80;
 const colors = {
-  purple: '#A500EB',
-  green: '#008314',
-  yellow: '#F3B700',
-  red: '#991A00',
-  orange: '#ff0000',
+  purple: '#C200FB',
+  green: '#8CD867',
+  yellow: '#F1D302',
+  red: '#A31621',
+  orange: '#D74E09',
   white: '#F7F7FF',
-  blue: '#65AFFF'
+  blue: '#2364AA'
 };
 
 module.exports = class Jewel {

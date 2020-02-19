@@ -14,10 +14,10 @@ const Grid = require('./grid');
 
 /////////////////////
 // test vTripsSeeker()
-console.log(`==========//test vTripsSeeker()`);
-const vTripsGrid = new Grid(8, 8);
+const vTripsGrid = new Grid(8, 8, true);
 //const columns = vTripsGrid.columns;
 //
 //vTripsGrid.vTripsSeeker();
-////console.log(vTripsGrid.trash);
 vTripsGrid.printToConsole();
+console.log(`==========trash`);
+console.log(vTripsGrid.trash);
