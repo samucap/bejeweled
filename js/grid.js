@@ -7,7 +7,6 @@ module.exports = class Grid {
     this.width = width;
     this.height = height;
     this.testing = testing;
-    this.ready = false;
     this.columns = [];
     this.trash = {};
     this.prepareBoard();
@@ -59,7 +58,7 @@ module.exports = class Grid {
       if (y !== 0 && y < this.height) columns += `\n`;
       while(z < this.width) {
         currJewel = this.columns[z++][y];
-        columns += `${chalk.hex(currJewel.type).bold(`JEWEL: ${currJewel.x}, ${currJewel.y}${currJewel.remove ? ' RM' : '   '}`)}${z > 0 ? `   ` : ''}`;
+        columns += `${chalk.hex(currJewel.type).bold(`JEWEL: ${currJewel.x}, ${currJewel.y}${currJewel.remove ? chalk.red(' RM') : '   '}`)}${z > 0 ? `   ` : ''}`;
       }
     }
 
@@ -88,8 +87,8 @@ module.exports = class Grid {
   putTrash(colIdx, idx, count) {
     let pair, i = 0;
     const currTrash = this.trash[colIdx].indexOf(this.trash[colIdx].find(item => {
-      pair = item.split(',');
-      return idx === pair[0]-1 || idx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
+      pair = item.split(',').map(item => parseInt(item));
+      return idx >= pair[0]-1 && idx <= pair[0]+pair[1];
     }));
 
     if (currTrash < 0) {

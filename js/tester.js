@@ -3,9 +3,9 @@ const Grid = require('./grid');
 
 function testVTrips(columns) {
   let z, y;
-  for (let x = 0; x < grid.width; x++) {
+  for (let x = 0; x < columns.length; x++) {
     y = 0;
-    while (y < grid.height-2) {
+    while (y < columns.length-2) {
       z = 0;
       curr = columns[x][y];
       next = columns[x][y+(++z)];
@@ -14,14 +14,16 @@ function testVTrips(columns) {
         assert(curr.remove);
         assert(next.remove);
         assert(nextNext.remove);
-        if (y+1 < grid.height) {
+        while (y+z+1 < columns.length && curr.type === columns[x][y+z+1].type) {
           nextNext = columns[x][y+(++z)];
-          while (nextNext && curr.type === nextNext.type) {
-            assert(nextNext.remove, `${x}, ${y}`);
-            nextNext = columns[x][y+(++z)];
-          }
+          assert(nextNext.remove, `${x}, ${y}`);
         }
+
+        y+=z;
       }
+      //else {
+      //  assert(!curr.remove, `${x}, ${y}`);
+      //}
 
       y++;
     }
@@ -30,9 +32,9 @@ function testVTrips(columns) {
 
 function testHTrips(columns) {
   let z, x;
-  for (let y = 0; y < grid.width; y++) {
+  for (let y = 0; y < columns.length; y++) {
     x = 0;
-    while (x < grid.width-2) {
+    while (x < columns.length-2) {
       z = 0;
       //console.log(`start ${x}, ${y}, ${z}`);
       curr = columns[x][y];
@@ -43,33 +45,45 @@ function testHTrips(columns) {
         assert(curr.remove, `${x}, ${y}`);
         assert(next.remove, `${x+1}, ${y}`);
         assert(nextNext.remove, `${x+2}, ${y}`);
-        if (x+z+1 < grid.width-1) {
+        while (x+z+1 < columns.length && curr.type === columns[x+z+1][y].type) {
           nextNext = columns[x+(++z)][y];
-          while (nextNext && curr.type === nextNext.type) {
-            assert(nextNext.remove, `${x+z}, ${y}`);
-            nextNext = columns[x+(++z)][y];
-          }
+          assert(nextNext.remove, `${x+z}, ${y}`);
         }
+
+        x+=z;
       }
+      //else {
+      //  assert(!curr.remove, `${x}, ${y}`);
+      //}
 
       x++;
     }
   }
 }
 
+function checkTrash(grid) {
+  for (let x = 0; x < grid.columns.length; x++) {
+    grid.trash[x].forEach(item => {
+      pair = item.split(',').map(each => parseInt(each));
+      while (pair[1]) {
+        //rmItems[x].push([x,pair[0]++]);
+        assert(grid.columns[x][pair[0]++].remove, `${x}-${pair[0]}`);
+        pair[1]--;
+      }
+    });
+  }
+}
+
 function makeGrids() {
   const grid = new Grid(8, 8);
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     grid.columns = [];
     grid.prepareBoard();
+    // need to test separately cuz of existing remove
     testVTrips(grid.columns);
     testHTrips(grid.columns);
+    checkTrash(grid);
   }
 }
 
 makeGrids();
-
-//const newGrid = new Grid(8, 8);
-//testVTrips(newGrid);
-////testHTrips();
-//newGrid.printToConsole();
