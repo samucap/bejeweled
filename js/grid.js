@@ -11,7 +11,6 @@ module.exports = class Grid {
     this.columns = [];
     this.trash = {};
     this.prepareBoard();
-    console.log(`trash===${JSON.stringify(this.trash)}`);
   }
 
   prepareBoard() {
@@ -52,19 +51,20 @@ module.exports = class Grid {
   }
 
   printToConsole() {
-    let column = ``;
+    let columns = ``;
     let counter = 0;
     let z, currJewel;
     for(let y = 0; y < this.height; y++) {
       z = 0;
-      if (y < this.height) column += `\n`;
+      if (y !== 0 && y < this.height) columns += `\n`;
       while(z < this.width) {
         currJewel = this.columns[z++][y];
-        column += `${chalk.hex(currJewel.type).bold(`JEWEL: ${currJewel.x}, ${currJewel.y}${currJewel.remove ? ' RM' : '   '}`)}${z > 0 ? `   ` : ''}`;
+        columns += `${chalk.hex(currJewel.type).bold(`JEWEL: ${currJewel.x}, ${currJewel.y}${currJewel.remove ? ' RM' : '   '}`)}${z > 0 ? `   ` : ''}`;
       }
     }
 
-    console.log(column);
+    console.log(columns);
+    console.log(this.trash);
   }
 
   render() {
@@ -80,134 +80,84 @@ module.exports = class Grid {
     container.appendChild(currCanvas);
   }
 
-  tripsSeeker(levels = 0) {
-    if (levels < this.width) {
-      this.vTripsSeeker(levels, 0);
-      this.hTripsSeeker(0, levels);
-      this.tripsSeeker(++levels);
-    }
+  tripsSeeker() {
+    this.vTrips();
+    this.hTrips();
   }
 
-  vTripsSeeker(colIdx = 0, rowIdx = 0, prev) {
-    let curr, currTrash, pair, i = 0;
-    console.log(`verticaldoing ====== ${colIdx}, ${rowIdx}`);
-    curr = this.columns[colIdx][rowIdx];
+  putTrash(colIdx, idx, count) {
+    let pair, i = 0;
+    const currTrash = this.trash[colIdx].indexOf(this.trash[colIdx].find(item => {
+      pair = item.split(',');
+      return idx === pair[0]-1 || idx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
+    }));
 
-    // seeking quads+
-    if (prev && prev.remove && prev.type === curr.type && !curr.remove) {
-      currTrash = this.trash[colIdx].indexOf(this.trash[colIdx].find(item => {
-        pair = item.split(',');
-        return rowIdx === pair[0]-1 || rowIdx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
-      }));
-
-      if (currTrash !== -1) {
-        if (rowIdx === pair[0]-1) {
-          this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/^\d/, rowIdx).replace(/\d$/, (m) => parseInt(m)+1);
-        } else {
-          this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/\d$/, (m) => parseInt(m)+1);
-        }
-      }
-
-        console.log(`adding=======`, this.trash);
-      curr.remove = true;
-      prev = this.columns[colIdx][rowIdx];
-    // seeking trips
-    } else if (rowIdx < this.height-2 && curr.type === this.columns[colIdx][rowIdx+1].type
-      && curr.type === this.columns[colIdx][rowIdx+2].type) {
-      while(i < 3) {
-        if (!this.columns[colIdx][rowIdx+i].remove) {
-          currTrash = this.trash[colIdx].indexOf(this.trash[colIdx].find(item => {
-            pair = item.split(',');
-            return rowIdx === pair[0]-1 || rowIdx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
-          }));
-
-          if (currTrash !== -1) {
-            if (rowIdx === pair[0]-1) {
-              this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/^\d/, rowIdx).replace(/\d$/, (m) => parseInt(m)+1);
-            } else {
-              this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/\d$/, (m) => parseInt(m)+1);
-            }
-          } else {
-            this.trash[colIdx].push(`${rowIdx+i},1`);
-          }
-        }
-
-        i++;
-      }
-
-      curr.remove = true;
-      this.columns[colIdx][rowIdx+1].remove = true;
-      this.columns[colIdx][rowIdx+=2].remove = true;
-      prev = this.columns[colIdx][rowIdx-1];
-      console.log(`newtrio=======`, this.trash);
+    if (currTrash < 0) {
+      this.trash[colIdx].push(`${idx},${count}`);
     } else {
-      prev = null;
-    }
-
-    rowIdx++;
-    if (rowIdx <= this.height-3
-      || (this.columns[colIdx][rowIdx] && curr.type === this.columns[colIdx][rowIdx].type))
-      this.vTripsSeeker(colIdx, rowIdx, prev);
-  }
-
-  hTripsSeeker(colIdx = 0, rowIdx = 0, prev) {
-    let curr, currTrash, pair, i = 0;
-    console.log(`hor====== ${colIdx}, ${rowIdx}`);
-    curr = this.columns[colIdx][rowIdx];
-
-    if (prev && prev.remove && prev.type === curr.type && !curr.remove) {
-        currTrash = this.trash[colIdx].indexOf(this.trash[colIdx].find(item => {
-          pair = item.split(',');
-          return rowIdx === pair[0]-1 || rowIdx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
-        }));
-        if (currTrash !== -1) {
-          if (rowIdx === pair[0]-1) {
-            this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/^\d/, rowIdx).replace(/\d$/, (m) => parseInt(m)+1);
-          } else {
+      do {
+        if (!this.columns[colIdx][idx+i].remove) {
+          if (idx === pair[0]-1)
+            this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash]
+              .replace(/^\d/, idx).replace(/\d$/, (m) => parseInt(m)+1);
+          else
             this.trash[colIdx][currTrash] = this.trash[colIdx][currTrash].replace(/\d$/, (m) => parseInt(m)+1);
-          }
-        } else {
-          this.trash[colIdx].push(`${rowIdx},1`);
-        }
-        console.log(`adding=======`, this.trash);
-
-      curr.remove = true;
-      prev = this.columns[colIdx][rowIdx];
-    } else if (colIdx < this.height-2 && curr.type === this.columns[colIdx+1][rowIdx].type
-      && curr.type === this.columns[colIdx+2][rowIdx].type) {
-      while(i < 3) {
-        if (!this.columns[colIdx+i][rowIdx].remove) {
-          currTrash = this.trash[colIdx+i].indexOf(this.trash[colIdx+i].find(item => {
-            pair = item.split(',');
-            return rowIdx === pair[0]-1 || rowIdx <= pair.reduce((acc, v) => acc+parseInt(v), 0);
-          }));
-
-          if (currTrash !== -1) {
-            if (rowIdx === pair[0]-1) {
-              this.trash[colIdx+i][currTrash] = this.trash[colIdx+i][currTrash].replace(/^\d/, rowIdx).replace(/\d$/, (m) => parseInt(m)+1);
-            } else {
-              this.trash[colIdx+i][currTrash] = this.trash[colIdx+i][currTrash].replace(/\d$/, (m) => parseInt(m)+1);
-            }
-          } else {
-            this.trash[colIdx+i].push(`${rowIdx},1`);
-          }
         }
 
         i++;
-      }
-        console.log(`newtrio=======`, this.trash);
-      
+      } while(i < count);
+    }
+  }
+
+  vTrips(x = 0, y = 0, prev) {
+    let next;
+    const curr = this.columns[x][y];
+    if (prev && curr.type === prev.type) {
+      this.putTrash(x, y, 1);
       curr.remove = true;
-      this.columns[colIdx+1][rowIdx].remove = true;
-      this.columns[colIdx+=2][rowIdx].remove = true;
-      prev = this.columns[colIdx-1][rowIdx];
-    } else {
-      prev = null;
+      next = curr;
+    } else if (y < this.height-2 &&
+      curr.type === this.columns[x][y+1].type && curr.type === this.columns[x][y+2].type) {
+      this.putTrash(x, y, 3);
+      curr.remove = true;
+      this.columns[x][++y].remove = true;
+      this.columns[x][++y].remove = true;
+      next = curr;
     }
 
-    colIdx++;
-    if (colIdx <= this.width-3
-      || (this.columns[colIdx] && curr.type === this.columns[colIdx][rowIdx].type))
-      this.hTripsSeeker(colIdx, rowIdx);
+    if (y < this.height-1) {
+      if (next)
+        this.vTrips(x, ++y, next);
+      else this.vTrips(x, ++y);
+    }
+    else if (x < this.width-1)
+      this.vTrips(++x, 0);
+  }
+
+  hTrips(x = 0, y = 0, prev) {
+    let next;
+    const curr = this.columns[x][y];
+    if (prev && curr.type === prev.type) {
+      this.putTrash(x, y, 1);
+      curr.remove = true;
+      next = curr;
+    } else if (x < this.width-2 &&
+      curr.type === this.columns[x+1][y].type && curr.type === this.columns[x+2][y].type) {
+      this.putTrash(x, y, 1);
+      this.putTrash(x+1, y, 1);
+      this.putTrash(x+2, y, 1);
+      curr.remove = true;
+      this.columns[++x][y].remove = true;
+      this.columns[++x][y].remove = true;
+      next = curr;
+    }
+
+    if (x < this.width-1) {
+      if (next)
+        this.hTrips(++x, y, next);
+      else this.hTrips(++x, y);
+    }
+    else if (y < this.height-1)
+      this.hTrips(0, ++y);
   }
 }

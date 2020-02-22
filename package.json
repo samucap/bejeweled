@@ -18,5 +18,8 @@
   "homepage": "https://github.com/samucapark/bejeweled#readme",
   "dependencies": {
     "chalk": "^3.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^7.0.1"
   }
 }
