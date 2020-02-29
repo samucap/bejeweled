@@ -30,73 +30,73 @@ module.exports = class Jewel {
     this.type = colors[type];
   }
 
-  //this.drawJewel = function(){
-	//	var currCanvas = document.getElementById('currCanvas');
-  //  var startX = this.x * cellSize;
-  //  var startY = this.y * cellSize;
-	//	var ctx = currCanvas.getContext('2d');
+  drawJewel(){
+    var currCanvas = document.getElementById('currCanvas');
+    var startX = this.x * cellSize;
+    var startY = this.y * cellSize;
+    var ctx = currCanvas.getContext('2d');
 
-	//	ctx.clearRect(startX, startY, cellSize, cellSize);
-  //  ctx.beginPath();
-  //  moveTo(startX, startY);
+    ctx.clearRect(startX, startY, cellSize, cellSize);
+    ctx.beginPath();
+    moveTo(startX, startY);
 
-  //  switch (this.type) {
-  //    //triangle
-  //    case colors.purple:
-  //      moveTo(startX + cellSize / 2, startY);
-  //      ctx.lineTo(startX + cellSize, startY + cellSize);
-  //      ctx.lineTo(startX, startY + cellSize);
-  //      ctx.lineTo(startX + cellSize / 2, startY);
-  //    break;
+    switch (this.type) {
+        //triangle
+      case colors.purple:
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + cellSize);
+        ctx.lineTo(startX, startY + cellSize);
+        ctx.lineTo(startX + cellSize / 2, startY);
+        break;
 
-  //    // diamond
-  //    case colors.yellow:
-  //      moveTo(startX + cellSize / 2, startY);
-  //      ctx.lineTo(startX + cellSize, startY + cellSize / 2);
-  //      ctx.lineTo(startX + cellSize / 2, startY + cellSize);
-  //      ctx.lineTo(startX, startY + cellSize / 2);
-  //      ctx.lineTo(startX + cellSize / 2, startY);
-  //    break;
+        // diamond
+      case colors.yellow:
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + cellSize / 2);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY + cellSize / 2);
+        ctx.lineTo(startX + cellSize / 2, startY);
+        break;
 
-  //    //square
-  //    case colors.green:
-  //      ctx.rect(startX, startY, cellSize, cellSize);
-  //    break;
+        //square
+      case colors.green:
+        ctx.rect(startX, startY, cellSize, cellSize);
+        break;
 
-  //    //square
-  //    case colors.red:
-  //      ctx.rect(startX, startY, cellSize, cellSize);
-  //    break;
+        //square
+      case colors.red:
+        ctx.rect(startX, startY, cellSize, cellSize);
+        break;
 
-  //    //hexa
-  //    case colors.orange:
-  //      moveTo(startX + cellSize / 2, startY);
-  //      ctx.lineTo(startX + cellSize, startY + 20);
-  //      ctx.lineTo(startX + cellSize, startY + 40);
-  //      ctx.lineTo(startX + cellSize / 2, startY + cellSize);
-  //      ctx.lineTo(startX, startY + 40);
-  //      ctx.lineTo(startX, startY + 20);
-  //      ctx.lineTo(startX + cellSize / 2, startY);
-  //    break;
+        //hexa
+      case colors.orange:
+        moveTo(startX + cellSize / 2, startY);
+        ctx.lineTo(startX + cellSize, startY + 20);
+        ctx.lineTo(startX + cellSize, startY + 40);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY + 40);
+        ctx.lineTo(startX, startY + 20);
+        ctx.lineTo(startX + cellSize / 2, startY);
+        break;
 
-  //    // circle
-  //    case colors.white:
-  //      moveTo(startX, startY);
-  //      ctx.arc(startX + cellSize/2, startY + cellSize/2, cellSize/2, Math.PI * 2, false);
-  //    break;
+        // circle
+      case colors.white:
+        moveTo(startX, startY);
+        ctx.arc(startX + cellSize/2, startY + cellSize/2, cellSize/2, Math.PI * 2, false);
+        break;
 
-  //    // down triangle
-  //    case colors.blue:
-  //      moveTo(startX, startY);
-  //      ctx.lineTo(startX + cellSize, startY);
-  //      ctx.lineTo(startX + cellSize / 2, startY + cellSize);
-  //      ctx.lineTo(startX, startY);
-  //    break;
-  //  }
+        // down triangle
+      case colors.blue:
+        moveTo(startX, startY);
+        ctx.lineTo(startX + cellSize, startY);
+        ctx.lineTo(startX + cellSize / 2, startY + cellSize);
+        ctx.lineTo(startX, startY);
+        break;
+    }
 
-  //  ctx.strokeRect(startX, startY, cellSize, cellSize);
-  //  ctx.fillStyle = this.type;
-	//	ctx.fill();
-  //  ctx.closePath();
-	//}
+    ctx.strokeRect(startX, startY, cellSize, cellSize);
+    ctx.fillStyle = this.type;
+    ctx.fill();
+    ctx.closePath();
+  }
 }

@@ -90,7 +90,7 @@ function checkCleaner() {
   const grid = new Grid(8, 8);
   let trash, range;
   let temp = [];
-  for(let i = 0; i < 50; i++) {
+  for(let i = 0; i < 30; i++) {
     grid.columns = [];
     grid.prepareBoard();
     grid.tripsSeeker();
@@ -106,7 +106,19 @@ function checkCleaner() {
         }
       }
     }
+
+    checkJewelCoords(0, 0, grid);
   }
+}
+
+function checkJewelCoords(x, y, grid) {
+  let curr;
+  if (x === grid.width) return;
+  curr = grid.columns[x][y];
+  assert.equal(x, curr.x);
+  assert.equal(y, curr.y);
+  if (y < grid.height-1) checkJewelCoords(x, ++y, grid);
+  else checkJewelCoords(++x, 0, grid)
 }
 
 makeGrids();

@@ -1,5 +1,7 @@
 'use strict';
 const chalk = require('chalk');
+
+//import Jewel from './jewel.js';
 const Jewel = require('./jewel');
 
 module.exports = class Grid {
@@ -11,6 +13,7 @@ module.exports = class Grid {
     this.trash = [];
     this.prepareBoard();
     this.checkBoard();
+    //this.render();
   }
 
   prepareBoard() {
@@ -30,14 +33,15 @@ module.exports = class Grid {
   }
 
   cleanTrash(i = 0) {
-    let range, replacements, j;
+    let range, replacements, j, x;
     while(this.trash[i].length) {
-      range = this.trash[i].splice(0, 1)[0].split(',');
-      j = range[1];
+      range = this.trash[i].splice(0, 1)[0].split(',').map(item => parseInt(item));
+      x = range[0];
+      j = 0;
       replacements = [];
-      while(j) {
-        replacements.push(new Jewel(i, j-1));
-        j--;
+      while(j < range[1]) {
+        replacements.push(new Jewel(i, x++));
+        j++;
       }
 
       this.columns[i].splice(range[0], range[1], ...replacements);
@@ -181,9 +185,17 @@ module.exports = class Grid {
     document.body.appendChild(container);
     currCanvas = document.createElement('CANVAS');
     currCanvas.id = 'currCanvas';
-    currCanvas.setAttribute('width', 640);
-    currCanvas.setAttribute('height', 640);
+    currCanvas.setAttribute('width', 800);
+    currCanvas.setAttribute('height', 800);
     currCanvas.addEventListener('click', this.handleClick);
     container.appendChild(currCanvas);
+    this.drawJewels();
+  }
+
+  drawJewels(x = 0, y = 0) {
+    if (x === this.width) return;
+    this.columns[x][y].drawJewel();
+    if (y < this.height-1) this.drawJewels(x, ++y);
+    else this.drawJewels(++x, 0);
   }
 }
