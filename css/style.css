@@ -1,8 +1,4 @@
-body {
-  margin: 0;
-}
-
 #currCanvas {
   border: 2px solid white;
-  background-color: #000;
+  background-color: #ccc;
 }

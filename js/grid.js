@@ -7,13 +7,16 @@ module.exports = class Grid {
   constructor(width, height, testing) {
     this.width = width;
     this.height = height;
-    this.testing = testing;
+    this.cellPad = 15;
+    this.cellSize = 70;
     this.columns = [];
     this.trash = [];
+    this.move;
     this.populate();
     this.checkBoard();
     if (!testing)
       this.render();
+    console.log(this.columns);
   }
 
   populate() {
@@ -22,7 +25,7 @@ module.exports = class Grid {
       this.columns.push([]);
       this.trash[x] = [];
       for(let y = 0; y < this.height; y++) {
-        this.columns[x].push(new Jewel(x, y));
+        this.columns[x].push(new Jewel(x, y, this.cellPad, this.cellSize));
       }
     }
   }
@@ -44,7 +47,7 @@ module.exports = class Grid {
       j = 0;
       replacements = [];
       while(j < range[1]) {
-        replacements.push(new Jewel(i, x++));
+        replacements.push(new Jewel(i, x++, this.cellPad, this.cellSize));
         j++;
       }
 
@@ -162,7 +165,7 @@ module.exports = class Grid {
     currCanvas.id = 'currCanvas';
     currCanvas.setAttribute('width', 700);
     currCanvas.setAttribute('height', 700);
-    currCanvas.addEventListener('click', this.handleClick);
+    currCanvas.addEventListener('click', this.handleClick.bind(this));
     container.appendChild(currCanvas);
     this.drawJewels();
   }
@@ -172,5 +175,24 @@ module.exports = class Grid {
     this.columns[x][y].drawJewel();
     if (y < this.height-1) this.drawJewels(x, ++y);
     else this.drawJewels(++x, 0);
+  }
+
+  handleClick(e) {
+    let curr;
+    let sum = e.offsetX + e.offsetY,
+      cellOffset = this.cellSize+this.cellPad,
+      xPos = Math.ceil(e.offsetX/cellOffset)-1,
+      yPos = Math.ceil(e.offsetY/cellOffset)-1;
+    if (xPos >= this.width || yPos >= this.height) return;
+    curr = this.columns[xPos][yPos];
+      console.log(e);
+      console.log(xPos, yPos);
+      console.log(e.offsetX, e.offsetY);
+
+    //if (sum >= curr.personalSpace[0] && sum <= curr.personalSpace[1]) {
+    //  if (!this.move) {
+    //  }
+    //}
+    
   }
 }
