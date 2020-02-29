@@ -1,7 +1,6 @@
 'use strict';
 const chalk = require('chalk');
 
-//import Jewel from './jewel.js';
 const Jewel = require('./jewel');
 
 module.exports = class Grid {
@@ -13,7 +12,7 @@ module.exports = class Grid {
     this.trash = [];
     this.prepareBoard();
     this.checkBoard();
-    //this.render();
+    this.render();
   }
 
   prepareBoard() {
@@ -185,8 +184,8 @@ module.exports = class Grid {
     document.body.appendChild(container);
     currCanvas = document.createElement('CANVAS');
     currCanvas.id = 'currCanvas';
-    currCanvas.setAttribute('width', 800);
-    currCanvas.setAttribute('height', 800);
+    currCanvas.setAttribute('width', 700);
+    currCanvas.setAttribute('height', 700);
     currCanvas.addEventListener('click', this.handleClick);
     container.appendChild(currCanvas);
     this.drawJewels();

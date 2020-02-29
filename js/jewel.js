@@ -1,4 +1,4 @@
-const cellSize = 80;
+const cellSize = 70;
 const colors = {
   purple: '#C200FB',
   green: '#8CD867',
@@ -31,10 +31,10 @@ module.exports = class Jewel {
   }
 
   drawJewel(){
-    var currCanvas = document.getElementById('currCanvas');
-    var startX = this.x * cellSize;
-    var startY = this.y * cellSize;
-    var ctx = currCanvas.getContext('2d');
+    const currCanvas = document.getElementById('currCanvas');
+    const startX = (this.x * cellSize) + (this.x * 15) + 15;
+    const startY = (this.y * cellSize) + (this.y * 15) + 15;
+    const ctx = currCanvas.getContext('2d');
 
     ctx.clearRect(startX, startY, cellSize, cellSize);
     ctx.beginPath();
@@ -94,7 +94,6 @@ module.exports = class Jewel {
         break;
     }
 
-    ctx.strokeRect(startX, startY, cellSize, cellSize);
     ctx.fillStyle = this.type;
     ctx.fill();
     ctx.closePath();
