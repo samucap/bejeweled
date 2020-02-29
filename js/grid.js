@@ -10,15 +10,20 @@ module.exports = class Grid {
     this.testing = testing;
     this.columns = [];
     this.trash = [];
-    this.prepareBoard();
+    this.populate();
     this.checkBoard();
-    this.render();
+    if (!testing)
+      this.render();
   }
 
-  prepareBoard() {
-    if (!this.testing) this.populate();
-    else {
-      this.populateTest();
+  populate() {
+    let currJewel;
+    for(let x = 0; x < this.width; x++) {
+      this.columns.push([]);
+      this.trash[x] = [];
+      for(let y = 0; y < this.height; y++) {
+        this.columns[x].push(new Jewel(x, y));
+      }
     }
   }
 
@@ -48,35 +53,6 @@ module.exports = class Grid {
 
     if (i < this.trash.length-1)
       this.cleanTrash(++i);
-  }
-
-  populate() {
-    let currJewel;
-    for(let x = 0; x < this.width; x++) {
-      this.columns.push([]);
-      this.trash[x] = [];
-      for(let y = 0; y < this.height; y++) {
-        this.columns[x].push(new Jewel(x, y));
-      }
-    }
-  }
-
-  populateTest() {
-    let currJewel;
-    for(let x = 0; x < this.width; x++) {
-      this.columns.push([]);
-      this.trash[x] = [];
-      for(let y = 0; y < this.height; y++) {
-        currJewel = new Jewel(x, y);
-        if (x < 3 && y < 4) {
-          currJewel.changeType('red');
-        } else if ((x > 3 && x <= 6) && (y > 3 && y <= 6)) {
-          currJewel.changeType('blue');
-        }
-
-        this.columns[x].push(currJewel);
-      }
-    }
   }
 
   printToConsole() {

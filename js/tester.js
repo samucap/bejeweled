@@ -74,10 +74,10 @@ function checkTrash(grid) {
 }
 
 function makeGrids() {
-  const grid = new Grid(8, 8);
+  const grid = new Grid(8, 8, true);
   for(let i = 0; i < 50; i++) {
     grid.columns = [];
-    grid.prepareBoard();
+    grid.populate();
     grid.tripsSeeker();
     // need to test separately cuz of existing remove
     testVTrips(grid.columns);
@@ -87,12 +87,12 @@ function makeGrids() {
 }
 
 function checkCleaner() {
-  const grid = new Grid(8, 8);
+  const grid = new Grid(8, 8, true);
   let trash, range;
   let temp = [];
   for(let i = 0; i < 30; i++) {
     grid.columns = [];
-    grid.prepareBoard();
+    grid.populate();
     grid.tripsSeeker();
     if (grid.trash.find(col => col.length)) {
       trash = grid.trash;
@@ -123,3 +123,4 @@ function checkJewelCoords(x, y, grid) {
 
 makeGrids();
 checkCleaner();
+console.log('tests passing...');
