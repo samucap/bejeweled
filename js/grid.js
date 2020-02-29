@@ -8,8 +8,9 @@ module.exports = class Grid {
     this.height = height;
     this.testing = testing;
     this.columns = [];
-    this.trash = {};
+    this.trash = [];
     this.prepareBoard();
+    this.checkBoard();
   }
 
   prepareBoard() {
@@ -17,8 +18,33 @@ module.exports = class Grid {
     else {
       this.populateTest();
     }
+  }
+
+  checkBoard() {
     this.tripsSeeker();
-    //this.printToConsole();
+    if (!this.trash.find(column => column.length))
+      return;
+
+    this.cleanTrash();
+    this.checkBoard();
+  }
+
+  cleanTrash(i = 0) {
+    let range, replacements, j;
+    while(this.trash[i].length) {
+      range = this.trash[i].splice(0, 1)[0].split(',');
+      j = range[1];
+      replacements = [];
+      while(j) {
+        replacements.push(new Jewel(i, j-1));
+        j--;
+      }
+
+      this.columns[i].splice(range[0], range[1], ...replacements);
+    }
+
+    if (i < this.trash.length-1)
+      this.cleanTrash(++i);
   }
 
   populate() {
@@ -44,6 +70,7 @@ module.exports = class Grid {
         } else if ((x > 3 && x <= 6) && (y > 3 && y <= 6)) {
           currJewel.changeType('blue');
         }
+
         this.columns[x].push(currJewel);
       }
     }
@@ -64,19 +91,6 @@ module.exports = class Grid {
 
     console.log(columns);
     console.log(this.trash);
-  }
-
-  render() {
-    let container = document.createElement('div'),
-      currCanvas;
-    container.id = 'container';
-    document.body.appendChild(container);
-    currCanvas = document.createElement('CANVAS');
-    currCanvas.id = 'currCanvas';
-    currCanvas.setAttribute('width', 640);
-    currCanvas.setAttribute('height', 640);
-    currCanvas.addEventListener('click', this.handleClick);
-    container.appendChild(currCanvas);
   }
 
   tripsSeeker() {
@@ -158,5 +172,18 @@ module.exports = class Grid {
     }
     else if (y < this.height-1)
       this.hTrips(0, ++y);
+  }
+
+  render() {
+    let container = document.createElement('div'),
+      currCanvas;
+    container.id = 'container';
+    document.body.appendChild(container);
+    currCanvas = document.createElement('CANVAS');
+    currCanvas.id = 'currCanvas';
+    currCanvas.setAttribute('width', 640);
+    currCanvas.setAttribute('height', 640);
+    currCanvas.addEventListener('click', this.handleClick);
+    container.appendChild(currCanvas);
   }
 }
