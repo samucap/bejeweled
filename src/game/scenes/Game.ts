@@ -1,86 +1,22 @@
 import { Scene } from "phaser";
 
+import Grid from "./grid";
+
 // --- Constants ---
 //const GRID_SIZE = 8;
 //const CELL_SIZE = 80;
 const JEWEL_SIZE = 70;
-const JEWEL_TYPES = [
-  0xc200fb, 0x8cd867, 0xf1d302, 0xa31621, 0xd74e09, 0xf7f7ff, 0x2364aa,
-];
 const JEWEL_BASE_KEY = "jewel_base";
 const SWAP_SPEED = 200; // Speed of jewel swap in ms
 
-// TODO: PUll this bitch out
-/**
- * A simple class to represent the data for a single jewel.
- * This is our "Model" in the Model-View-Controller pattern.
- */
-class Jewel {
-  public row: number;
-  public col: number;
-  public color: number;
-  public size: number = 70;
-  //TODO: move GameScene.jewelSprites and everything jewel
-
-  constructor(row: number, col: number) {
-    this.row = row;
-    this.col = col;
-    this.color = Phaser.Math.RND.pick(JEWEL_TYPES);
-  }
-}
-
-class Grid {
-  board: Jewel[][] = [];
-  size: number = 8;
-  cellSize: number = 80;
-
-  constructor() {
-    this.createBoardModel();
-  }
-
-  private createBoardModel() {
-    for (let row = 0; row < this.size; row++) {
-      this.board[row] = [];
-      for (let col = 0; col < this.size; col++) {
-        this.board[row][col] = new Jewel(row, col);
-      }
-    }
-  }
-
-  checkBoard(x: number, y: number) {
-    let change = 1;
-    console.log(x, y, change);
-  }
-
-  /** Updates the data model and the sprite array to reflect a swap */
-  updateBoard(jewel1: Jewel, jewel2: Jewel) {
-    const row1 = jewel1.row;
-    const col1 = jewel1.col;
-    const row2 = jewel2.row;
-    const col2 = jewel2.col;
-
-    // Swap the data in the model
-    this.board[row1][col1] = jewel2;
-    this.board[row2][col2] = jewel1;
-
-    // Update the row/col properties within the Jewel objects themselves
-    jewel1.row = row2;
-    jewel1.col = col2;
-    jewel2.row = row1;
-    jewel2.col = col1;
-  }
-}
-
 export class GameScene extends Scene {
-  // The data model for our game board
-  //private board: Jewel[][] = [];
   private grid: Grid;
+  private firstSelection: number[] = [];
+  private isSwapping = false; // Flag to prevent clicks during animation
   // The view layer for our game board (the Phaser sprites)
   private jewelSprites: Phaser.GameObjects.Sprite[][] = [];
-
-  private firstSelection: Jewel | null = null;
+  private boardContainer: Phaser.GameObjects.Container;
   private selectionGlow: Phaser.GameObjects.Graphics | null = null;
-  private isSwapping = false; // Flag to prevent clicks during animation
 
   constructor() {
     super("GameScene");
@@ -115,60 +51,57 @@ export class GameScene extends Scene {
     this.createBoardView();
     this.setupInputHandler();
     this.glowSelection();
-    //this.selectionGlow = this.add.graphics();
-    //this.selectionGlow.lineStyle(4, 0xffffff, 0.8);
-    //this.selectionGlow.strokeRoundedRect(
-    //  0,
-    //  0,
-    //  8 - 4,
-    //  8- 4,
-    //  14,
-    //);
-    //this.selectionGlow.setVisible(false);
   }
 
   private glowSelection() {
     this.selectionGlow = this.add.graphics();
-    this.selectionGlow.lineStyle(4, 0xffffff, 0.8);
-    this.selectionGlow.strokeRoundedRect(0, 0, 4, 4, 14);
+    this.selectionGlow.lineStyle(4, 0xffffff, 0.9);
+    this.selectionGlow.strokeRoundedRect(
+      0,
+      0,
+      this.grid.cellSize - 4,
+      this.grid.cellSize - 4,
+      14,
+    );
     this.selectionGlow.setVisible(false);
   }
 
-  /**
-   * Renders the visual representation of the board based on the data
-   * in `this.board`.
-   */
   private createBoardView() {
+    // Create a container to hold all board elements for easy centering.
+    //const boardWidth = this.grid.size * this.grid.cellSize;
+    this.boardContainer = this.add.container(
+      this.scale.width / 2,
+      this.scale.height / 2,
+    );
+
     const gridGraphics = this.add.graphics();
+    this.boardContainer.add(gridGraphics);
 
     for (let row = 0; row < this.grid.size; row++) {
-      //TODO: move this jewelSprites population along with Grid.createBoardModel
       this.jewelSprites[row] = [];
       for (let col = 0; col < this.grid.size; col++) {
-        const jewelData = this.grid.board[row][col];
-        const x = col * this.grid.size;
-        const y = row * this.grid.size;
+        // Calculate position relative to the container's center
+        const x = (col - this.grid.size / 2) * this.grid.cellSize;
+        const y = (row - this.grid.size / 2) * this.grid.cellSize;
 
-        // Draw the background cell
+        // Draw background cell - USE cellSize, NOT size
         gridGraphics.fillStyle(0x000000, 0.2);
-        gridGraphics.lineStyle(1, 0xffffff, 0.15);
-        gridGraphics.fillRect(x, y, this.grid.size, this.grid.size);
-        gridGraphics.strokeRect(x, y, this.grid.size, this.grid.size);
+        gridGraphics.fillRect(x, y, this.grid.cellSize, this.grid.cellSize);
 
-        // Create the jewel sprite using our base texture
+        //TODO: this should prolly be in Jewel
+        // Create jewel sprite - USE cellSize for centering
         const jewelSprite = this.add.sprite(
-          x + this.grid.size / 2,
-          y + this.grid.size / 2,
+          x + this.grid.cellSize / 2,
+          y + this.grid.cellSize / 2,
           JEWEL_BASE_KEY,
         );
-
-        // Tint the sprite using the color from our data model
-        jewelSprite.setTint(jewelData.color);
-
-        // Store the sprite in our view array for later access
+        jewelSprite.setTint(this.grid.board[row][col].color);
+        this.boardContainer.add(jewelSprite);
         this.jewelSprites[row][col] = jewelSprite;
       }
     }
+
+    this.glowSelection();
   }
 
   /**
@@ -178,8 +111,8 @@ export class GameScene extends Scene {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.isSwapping) return;
 
-      const col = Math.floor(pointer.x / this.grid.size);
-      const row = Math.floor(pointer.y / this.grid.size);
+      const col = Math.floor(pointer.x / this.grid.cellSize);
+      const row = Math.floor(pointer.y / this.grid.cellSize);
 
       // Bounds check: Ensure the click is within the grid
       if (
@@ -188,7 +121,7 @@ export class GameScene extends Scene {
         row >= 0 &&
         row < this.grid.size
       ) {
-        // We have a valid grid cell click, let's handle it
+        // valid grid cell
         this.handleCellClick(row, col);
       }
     });
@@ -200,78 +133,49 @@ export class GameScene extends Scene {
    * @param col The column of the clicked cell.
    */
   private handleCellClick(row: number, col: number) {
-    // 1. Get the data from our model
-    const jewelData = this.grid.board[row][col];
-    // 2. Get the sprite from our view array
-    const jewelSprite = this.jewelSprites[row][col];
-
-    if (!jewelData || !jewelSprite) {
-      // Should not happen, but a good safe-guard
-      return;
-    }
-
-    // 3. Print the information from the data model
-    console.log(
-      `Cell: (${row}, ${col}), Color: #${jewelData.color.toString(16)}`,
-    );
-    if (!this.firstSelection) {
-      this.firstSelection = jewelData;
+    if (!this.firstSelection.length) {
+      this.firstSelection = [row, col];
       this.showSelectionIndicator(row, col);
     } else {
       // TODO: logic for clicks
       // if same just unselect
-      if (this.areNeighbors(this.firstSelection, jewelData)) {
+      if (this.areNeighbors(this.firstSelection, row, col)) {
         // It's a valid neighbor, let's swap
         this.hideSelectionIndicator();
-        this.swapJewels(this.firstSelection, jewelData);
         this.grid.checkBoard(row, col);
-        this.updateJewels(this.firstSelection, jewelData);
-        this.firstSelection = null; // Reset selection
+        this.swapJewels(this.firstSelection, row, col);
+        this.firstSelection = []; // Reset selection
       } else {
         // Not a neighbor. If it's the same jewel, deselect it. Otherwise, select the new one.
-        if (
-          this.firstSelection.row === row &&
-          this.firstSelection.col === col
-        ) {
-          this.firstSelection = null;
+        if (this.firstSelection[0] === row && this.firstSelection[1] === col) {
+          this.firstSelection = []; // Reset selection
           this.hideSelectionIndicator();
         } else {
-          this.firstSelection = jewelData;
+          this.firstSelection = [row, col];
           this.showSelectionIndicator(row, col);
         }
       }
-
-      // if not next to firstSelection do nothing, or print can't swap with that one.
-
-      // swap jewels
-      // check if there's sequence, starting from this row and col, loop negative and positive and check how many
-      // of the same you get
     }
-
-    // 4. Trigger the animation on the correct sprite
-    this.tweens.add({
-      targets: jewelSprite,
-      scale: 1,
-      duration: 150,
-      yoyo: true,
-      ease: "quad.out",
-    });
   }
 
-  private areNeighbors(jewel1: Jewel, jewel2: Jewel): boolean {
-    const rowDiff = Math.abs(jewel1.row - jewel2.row);
-    const colDiff = Math.abs(jewel1.col - jewel2.col);
+  private areNeighbors(
+    first: number[],
+    currRow: number,
+    currCol: number,
+  ): boolean {
+    const rowDiff = Math.abs(first[0] - currRow);
+    const colDiff = Math.abs(first[1] - currCol);
     return rowDiff + colDiff === 1;
   }
 
-  private swapJewels(jewel1: Jewel, jewel2: Jewel) {
+  private swapJewels(first: number[], currRow: number, currCol: number) {
     this.isSwapping = true;
     console.log(
-      `Swapping (${jewel1.row}, ${jewel1.col}) with (${jewel2.row}, ${jewel2.col})`,
+      `Swapping (${first[0]}, ${first[1]}) with (${currRow}, ${currCol})`,
     );
 
-    const sprite1 = this.jewelSprites[jewel1.row][jewel1.col];
-    const sprite2 = this.jewelSprites[jewel2.row][jewel2.col];
+    const sprite1 = this.jewelSprites[first[0]][first[1]];
+    const sprite2 = this.jewelSprites[currRow][currCol];
 
     const targetX1 = sprite2.x;
     const targetY1 = sprite2.y;
@@ -301,18 +205,12 @@ export class GameScene extends Scene {
   }
 
   // Swap the sprites in the view array
-  private updateJewels(jewel1: Jewel, jewel2: Jewel): void {
-    const sprite1 = this.jewelSprites[jewel1.row][jewel1.col];
-    const sprite2 = this.jewelSprites[jewel2.row][jewel2.col];
-    this.jewelSprites[jewel1.row][jewel1.col] = sprite2;
-    this.jewelSprites[jewel2.row][jewel2.col] = sprite1;
-  }
 
   private showSelectionIndicator(row: number, col: number) {
     if (!this.selectionGlow) return;
 
-    const x = col * this.grid.size + 2;
-    const y = row * this.grid.size + 2;
+    const x = col * this.grid.cellSize + 2;
+    const y = row * this.grid.cellSize + 2;
     this.selectionGlow.setPosition(x, y);
     this.selectionGlow.setVisible(true);
 
