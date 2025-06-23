@@ -38,6 +38,9 @@ export class GameScene extends Scene {
   create() {
     this.createBoardView();
     this.setupInputHandler();
+    this.input.keyboard?.on("keydown-SPACE", () =>
+      this.scene.start("AnimatedScene"),
+    );
   }
 
   private createBoardView() {

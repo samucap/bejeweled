@@ -1,4 +1,4 @@
-//import { Boot } from './scenes/Boot';
+import AnimatedScene from "./scenes/Boot";
 //mport { GameOver } from './scenes/GameOver';
 import { GameScene } from "./scenes/Game";
 //import { MainMenu } from './scenes/MainMenu';
@@ -14,6 +14,7 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: "board",
   backgroundColor: "transparent",
   scene: [
+    AnimatedScene,
     //Boot,
     //Preloader,
     //MainMenu,
