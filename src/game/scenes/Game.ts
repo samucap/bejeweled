@@ -5,15 +5,18 @@ import Jewel from "./jewel";
 const JEWEL_SIZE = 70;
 const JEWEL_BASE_KEY = "jewel_base";
 const SWAP_SPEED = 200;
-const REMOVE_SPEED = 1000;
-const DROP_SPEED = 800;
+const REMOVE_SPEED = 200;
+const DROP_SPEED = 300;
+const HIGHLIGHT_DELAY = 400;
 
 export class GameScene extends Scene {
   private grid: Grid;
   private boardContainer: Phaser.GameObjects.Container;
-  private jewelSprites: Phaser.GameObjects.Sprite[][] = [];
+  // This Map is the key to the fix. It robustly links a jewel's data to its sprite.
+  private jewelSpriteMap: Map<number, Phaser.GameObjects.Sprite>;
   private firstSelection: Jewel | null = null;
   private selectionGlow: Phaser.GameObjects.Graphics | null = null;
+  private highlightPool: Phaser.GameObjects.Graphics[] = [];
   private isAnimating = false;
 
   constructor() {
@@ -22,6 +25,8 @@ export class GameScene extends Scene {
 
   init() {
     this.grid = new Grid();
+    // Initialize the map here
+    this.jewelSpriteMap = new Map();
   }
 
   preload() {
@@ -37,9 +42,6 @@ export class GameScene extends Scene {
     this.setupInputHandler();
   }
 
-  /**
-   * Renders the initial grid and jewel sprites.
-   */
   private createBoardView() {
     this.boardContainer = this.add.container(
       this.scale.width / 2,
@@ -49,9 +51,16 @@ export class GameScene extends Scene {
     const gridGraphics = this.add.graphics();
     this.boardContainer.add(gridGraphics);
 
+    for (let i = 0; i < 10; i++) {
+      const rect = this.add.graphics();
+      rect.setVisible(false);
+      this.boardContainer.add(rect);
+      this.highlightPool.push(rect);
+    }
+
     for (let col = 0; col < this.grid.size; col++) {
-      this.jewelSprites[col] = [];
       for (let row = 0; row < this.grid.size; row++) {
+        const jewel = this.grid.board[col][row];
         const { x, y } = this.getSpritePosition(row, col);
 
         gridGraphics.fillStyle(0x000000, 0.2);
@@ -63,9 +72,10 @@ export class GameScene extends Scene {
         );
 
         const jewelSprite = this.add.sprite(x, y, JEWEL_BASE_KEY);
-        jewelSprite.setTint(this.grid.board[col][row].color);
+        jewelSprite.setTint(jewel.color);
         this.boardContainer.add(jewelSprite);
-        this.jewelSprites[col][row] = jewelSprite;
+        // Link the jewel's unique ID to its sprite object
+        this.jewelSpriteMap.set(jewel.id, jewelSprite);
       }
     }
 
@@ -82,25 +92,10 @@ export class GameScene extends Scene {
     this.boardContainer.add(this.selectionGlow);
   }
 
-  /**
-   * Sets up the pointer down event for jewel selection.
-   */
   private setupInputHandler() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.isAnimating) return;
-      const touchPoint = this.boardContainer.pointToContainer(
-        pointer,
-      ) as Phaser.Math.Vector2;
-      const col = Math.floor(
-        (touchPoint.x + (this.grid.size * this.grid.cellSize) / 2) /
-          this.grid.cellSize,
-      );
-      const viewRow = Math.floor(
-        (touchPoint.y + (this.grid.size * this.grid.cellSize) / 2) /
-          this.grid.cellSize,
-      );
-      const row = this.grid.size - 1 - viewRow;
-
+      const { row, col } = this.getGridPosition(pointer);
       if (this.grid.board[col]?.[row]) {
         this.handleCellClick(row, col);
       }
@@ -109,7 +104,6 @@ export class GameScene extends Scene {
 
   private handleCellClick(row: number, col: number) {
     const clickedJewel = this.grid.board[col][row];
-
     if (!this.firstSelection) {
       this.firstSelection = clickedJewel;
       this.showSelectionIndicator(row, col);
@@ -132,48 +126,48 @@ export class GameScene extends Scene {
     );
   }
 
-  /**
-   * Main function to handle swapping and the resulting animation cascade.
-   */
   private swapAndCheck(jewel1: Jewel, jewel2: Jewel) {
     this.isAnimating = true;
     this.animateSwap(jewel1, jewel2, () => {
       this.grid.swap(jewel1, jewel2);
       const cascadeData = this.grid.findAllMatches();
-
-      if (cascadeData) {
+      if (cascadeData && cascadeData.length > 0) {
         this.animateCascade(cascadeData, 0);
       } else {
         // No match, swap back
         this.animateSwap(jewel1, jewel2, () => {
-          this.grid.swap(jewel1, jewel2); // Swap back in the grid
+          this.grid.swap(jewel1, jewel2);
           this.isAnimating = false;
         });
       }
     });
   }
 
-  /**
-   * Recursively animates each step of the match-and-clear cascade.
-   */
   private animateCascade(cascadeData: MatchData[], index: number) {
     if (index >= cascadeData.length) {
-      this.syncSpritesWithBoard();
       this.isAnimating = false;
       return;
     }
     const matchData = cascadeData[index];
-    this.animateRemoval(matchData.removed, () => {
-      this.animateDropDown(matchData.slid, matchData.new, () => {
-        this.animateCascade(cascadeData, index + 1);
+    const highlights = this.showHighlights(matchData.trash);
+    this.time.delayedCall(HIGHLIGHT_DELAY, () => {
+      this.animateRemoval(matchData.removed, highlights, () => {
+        this.animateDropDown(matchData, () => {
+          this.animateCascade(cascadeData, index + 1);
+        });
       });
     });
   }
 
   private animateSwap(jewel1: Jewel, jewel2: Jewel, onComplete: () => void) {
-    const sprite1 = this.jewelSprites[jewel1.col][jewel1.row];
-    const sprite2 = this.jewelSprites[jewel2.col][jewel2.row];
-
+    // Retrieve sprites directly by ID, which is much safer.
+    const sprite1 = this.jewelSpriteMap.get(jewel1.id);
+    const sprite2 = this.jewelSpriteMap.get(jewel2.id);
+    if (!sprite1 || !sprite2) {
+      console.error("Cannot find sprite for jewel in swap");
+      onComplete();
+      return;
+    }
     this.tweens.add({
       targets: sprite1,
       x: sprite2.x,
@@ -187,40 +181,58 @@ export class GameScene extends Scene {
       y: sprite1.y,
       duration: SWAP_SPEED,
       ease: "quad.out",
-      onComplete: () => {
-        this.updateSpriteArrayAfterSwap(jewel1, jewel2);
-        onComplete();
-      },
-    });
-  }
-
-  private animateRemoval(removed: Jewel[], onComplete: () => void) {
-    if (removed.length === 0) {
-      onComplete();
-      return;
-    }
-    this.tweens.add({
-      targets: removed.map((j) => this.jewelSprites[j.col][j.row]),
-      scale: 0,
-      alpha: 0,
-      duration: REMOVE_SPEED,
-      ease: "quad.in",
       onComplete,
     });
   }
 
-  private animateDropDown(
-    slid: MatchData["slid"],
-    newJewels: MatchData["new"],
+  private animateRemoval(
+    removed: Jewel[],
+    highlights: Phaser.GameObjects.Graphics[],
     onComplete: () => void,
   ) {
+    if (!removed || removed.length === 0) {
+      onComplete();
+      return;
+    }
+    // Filter out any potential nulls if a jewel somehow has no sprite.
+    const jewelSprites = removed
+      .map((j) => this.jewelSpriteMap.get(j.id))
+      .filter(Boolean);
+
+    if (highlights && highlights.length > 0) {
+      this.tweens.add({
+        targets: highlights,
+        alpha: 0,
+        duration: REMOVE_SPEED,
+        ease: "quad.in",
+      });
+    }
+
+    if (jewelSprites.length > 0) {
+      this.tweens.add({
+        targets: jewelSprites,
+        scale: 0,
+        alpha: 0,
+        duration: REMOVE_SPEED,
+        ease: "quad.in",
+        onComplete: () => {
+          if (highlights) {
+            highlights.forEach((h) => h.setVisible(false));
+          }
+          onComplete();
+        },
+      });
+    } else {
+      onComplete();
+    }
+  }
+
+  private animateDropDown(matchData: MatchData, onComplete: () => void) {
     let animations = 0;
+    const { slid, new: newJewels, removed } = matchData;
     const onAnimComplete = () => {
       animations--;
-      if (animations === 0) {
-        this.syncSpritesWithBoard();
-        onComplete();
-      }
+      if (animations === 0) onComplete();
     };
 
     if (slid.length === 0 && newJewels.length === 0) {
@@ -228,10 +240,18 @@ export class GameScene extends Scene {
       return;
     }
 
-    // Animate sliding jewels
-    slid.forEach(({ jewel, fromRow }) => {
+    // A reliable pool of sprites from the jewels that were just removed.
+    const reusableSprites = removed
+      .map((j) => this.jewelSpriteMap.get(j.id))
+      .filter(Boolean);
+
+    slid.forEach(({ jewel }) => {
       animations++;
-      const sprite = this.jewelSprites[jewel.col][fromRow];
+      const sprite = this.jewelSpriteMap.get(jewel.id);
+      if (!sprite) {
+        onAnimComplete();
+        return;
+      } // Safety check
       const { y } = this.getSpritePosition(jewel.row, jewel.col);
       this.tweens.add({
         targets: sprite,
@@ -242,14 +262,22 @@ export class GameScene extends Scene {
       });
     });
 
-    // Animate new jewels
     newJewels.forEach((jewel) => {
       animations++;
       const { x, y } = this.getSpritePosition(jewel.row, jewel.col);
-      const sprite = this.findUnusedSprite(jewel.col);
+      // Get a sprite from the pool or create a new one as a fallback.
+      const sprite =
+        reusableSprites.pop() || this.add.sprite(x, y, JEWEL_BASE_KEY);
+      if (!sprite.scene) {
+        this.add.existing(sprite);
+      } // Add to scene if it was removed
+
       sprite.x = x;
-      sprite.y = y - this.grid.cellSize * this.grid.size;
+      sprite.y = y - this.grid.cellSize * this.grid.size; // Start off-screen
       sprite.setTint(jewel.color).setAlpha(1).setScale(1);
+
+      this.jewelSpriteMap.set(jewel.id, sprite); // Link new jewel to its sprite
+
       this.tweens.add({
         targets: sprite,
         y,
@@ -260,68 +288,105 @@ export class GameScene extends Scene {
     });
   }
 
-  /**
-   * Finds a sprite in a column that is invisible and can be reused for a new jewel.
-   */
-  private findUnusedSprite(col: number): Phaser.GameObjects.Sprite {
-    for (let row = 0; row < this.grid.size; row++) {
-      const sprite = this.jewelSprites[col][row];
-      if (sprite.alpha === 0) {
-        return sprite;
-      }
-    }
-    // Fallback, should not happen in normal flow
-    return this.jewelSprites[col][0];
-  }
-
-  /**
-   * After animations, this ensures the jewelSprites array matches the grid data model exactly.
-   */
-  private syncSpritesWithBoard() {
-    const newSpriteGrid: Phaser.GameObjects.Sprite[][] = this.grid.board.map(
-      () => [],
-    );
-
-    const availableSprites: Phaser.GameObjects.Sprite[] = [];
-    this.jewelSprites.forEach((col) =>
-      col.forEach((s) => availableSprites.push(s)),
-    );
-
-    this.grid.board.forEach((col, c) => {
-      col.forEach((jewel, r) => {
-        const pos = this.getSpritePosition(r, c);
-        let foundSprite: Phaser.GameObjects.Sprite | undefined;
-
-        // Find the sprite that already represents this jewel, if any
-        const spriteIndex = availableSprites.findIndex(
-          (s) => s.x === pos.x && s.y === pos.y,
-        );
-        if (spriteIndex !== -1) {
-          foundSprite = availableSprites.splice(spriteIndex, 1)[0];
+  private showHighlights(
+    trash: MatchData["trash"],
+  ): Phaser.GameObjects.Graphics[] {
+    const activeHighlights: Phaser.GameObjects.Graphics[] = [];
+    let poolIndex = 0;
+    const singleCellTrash: { [col: number]: { from: number; len: number }[] } =
+      {};
+    for (const colStr in trash) {
+      const col = parseInt(colStr);
+      singleCellTrash[col] = [];
+      trash[col].forEach((item) => {
+        if (item.len > 1) {
+          if (poolIndex >= this.highlightPool.length) return;
+          const highlightRect = this.highlightPool[poolIndex++];
+          const startPos = this.getSpritePosition(item.from, col);
+          const endPos = this.getSpritePosition(item.from + item.len - 1, col);
+          this.drawHighlightRect(
+            highlightRect,
+            startPos.x - this.grid.cellSize / 2,
+            endPos.y - this.grid.cellSize / 2,
+            this.grid.cellSize,
+            this.grid.cellSize * item.len,
+          );
+          activeHighlights.push(highlightRect);
         } else {
-          // If no sprite is at the target location, grab any available one
-          foundSprite = availableSprites.pop();
-        }
-
-        if (foundSprite) {
-          foundSprite.setPosition(pos.x, pos.y);
-          foundSprite.setTint(jewel.color);
-          foundSprite.setAlpha(1).setScale(1);
-          newSpriteGrid[c][r] = foundSprite;
+          singleCellTrash[col].push(item);
         }
       });
-    });
-
-    this.jewelSprites = newSpriteGrid;
+    }
+    const groupedByRow: { [row: number]: number[] } = {};
+    for (const colStr in singleCellTrash) {
+      const col = parseInt(colStr);
+      singleCellTrash[col].forEach((item) => {
+        if (!groupedByRow[item.from]) {
+          groupedByRow[item.from] = [];
+        }
+        groupedByRow[item.from].push(col);
+      });
+    }
+    for (const rowStr in groupedByRow) {
+      const row = parseInt(rowStr);
+      const cols = groupedByRow[row].sort((a, b) => a - b);
+      if (cols.length < 3) continue;
+      let currentRun = [cols[0]];
+      for (let i = 1; i < cols.length; i++) {
+        if (cols[i] === cols[i - 1] + 1) {
+          currentRun.push(cols[i]);
+        } else {
+          if (currentRun.length >= 3) {
+            if (poolIndex >= this.highlightPool.length) continue;
+            const highlightRect = this.highlightPool[poolIndex++];
+            const startPos = this.getSpritePosition(row, currentRun[0]);
+            this.drawHighlightRect(
+              highlightRect,
+              startPos.x - this.grid.cellSize / 2,
+              startPos.y - this.grid.cellSize / 2,
+              currentRun.length * this.grid.cellSize,
+              this.grid.cellSize,
+            );
+            activeHighlights.push(highlightRect);
+          }
+          currentRun = [cols[i]];
+        }
+      }
+      if (currentRun.length >= 3) {
+        if (poolIndex < this.highlightPool.length) {
+          const highlightRect = this.highlightPool[poolIndex++];
+          const startPos = this.getSpritePosition(row, currentRun[0]);
+          this.drawHighlightRect(
+            highlightRect,
+            startPos.x - this.grid.cellSize / 2,
+            startPos.y - this.grid.cellSize / 2,
+            currentRun.length * this.grid.cellSize,
+            this.grid.cellSize,
+          );
+          activeHighlights.push(highlightRect);
+        }
+      }
+    }
+    return activeHighlights;
   }
 
-  private updateSpriteArrayAfterSwap(jewel1: Jewel, jewel2: Jewel) {
-    const { row: r1, col: c1 } = jewel1;
-    const { row: r2, col: c2 } = jewel2;
-    [this.jewelSprites[c1][r1], this.jewelSprites[c2][r2]] = [
-      this.jewelSprites[c2][r2],
-      this.jewelSprites[c1][r1],
-    ];
+  private drawHighlightRect(
+    rect: Phaser.GameObjects.Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) {
+    rect.clear();
+    rect.fillStyle(0xffffff, 0.4);
+    rect.fillRoundedRect(0, 0, width, height, 12);
+    rect.setPosition(x, y).setVisible(true).setAlpha(0);
+    this.tweens.add({
+      targets: rect,
+      alpha: 1,
+      duration: 150,
+      ease: "quad.out",
+    });
   }
 
   private getSpritePosition(row: number, col: number) {
@@ -332,6 +397,22 @@ export class GameScene extends Scene {
       (viewRow - this.grid.size / 2) * this.grid.cellSize +
       this.grid.cellSize / 2;
     return { x, y };
+  }
+
+  private getGridPosition(pointer: Phaser.Input.Pointer) {
+    const touchPoint = this.boardContainer.pointToContainer(
+      pointer,
+    ) as Phaser.Math.Vector2;
+    const col = Math.floor(
+      (touchPoint.x + (this.grid.size * this.grid.cellSize) / 2) /
+        this.grid.cellSize,
+    );
+    const viewRow = Math.floor(
+      (touchPoint.y + (this.grid.size * this.grid.cellSize) / 2) /
+        this.grid.cellSize,
+    );
+    const row = this.grid.size - 1 - viewRow;
+    return { row, col };
   }
 
   private showSelectionIndicator(row: number, col: number) {

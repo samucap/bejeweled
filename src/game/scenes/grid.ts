@@ -3,7 +3,7 @@ import Jewel from "./jewel";
 /**
  * Defines a segment of jewels to be removed from a column.
  */
-interface TrashItem {
+export interface TrashItem {
   from: number;
   len: number;
 }
@@ -16,6 +16,7 @@ export interface MatchData {
   removed: Jewel[];
   slid: { jewel: Jewel; fromRow: number; toRow: number }[];
   new: Jewel[];
+  trash: { [col: number]: TrashItem[] }; // Added to help draw highlight blocks
 }
 
 export default class Grid {
@@ -65,23 +66,23 @@ export default class Grid {
     const cascade: MatchData[] = [];
 
     while (true) {
-      this.trash = {};
-      this.checkColumns();
-      this.checkRows();
+      const currentTrash: { [col: number]: TrashItem[] } = {};
+      this.checkColumns(currentTrash);
+      this.checkRows(currentTrash);
 
-      if (Object.keys(this.trash).length === 0) {
+      if (Object.keys(currentTrash).length === 0) {
         break; // No more matches, exit the loop
       }
 
-      this.mergeTrash();
-      const removed = this.getRemovedJewels();
+      this.mergeTrash(currentTrash);
+      const removed = this.getRemovedJewels(currentTrash);
       const beforeState = this.board.map((col) => [...col]);
 
-      this.cleanTrash(); // This modifies the board array
+      this.cleanTrash(currentTrash); // This modifies the board array
 
       const { slid, new: newJewels } = this.deriveChanges(beforeState);
 
-      cascade.push({ removed, slid, new: newJewels });
+      cascade.push({ removed, slid, new: newJewels, trash: currentTrash });
     }
 
     return cascade.length > 0 ? cascade : null;
@@ -92,7 +93,7 @@ export default class Grid {
    * @param beforeState The state of the board before `cleanTrash` was called.
    * @returns An object containing arrays of sliding and new jewels.
    */
-  deriveChanges(beforeState: Jewel[][]) {
+  private deriveChanges(beforeState: Jewel[][]) {
     const slid: { jewel: Jewel; fromRow: number; toRow: number }[] = [];
     const newJewels: Jewel[] = [];
 
@@ -119,10 +120,10 @@ export default class Grid {
   /**
    * Removes jewels marked in `this.trash` and adds new ones to the top of columns.
    */
-  cleanTrash() {
-    const cols = Object.keys(this.trash).map((c) => parseInt(c));
+  private cleanTrash(trash: { [col: number]: TrashItem[] }) {
+    const cols = Object.keys(trash).map((c) => parseInt(c));
     for (const col of cols) {
-      const trashItems = this.trash[col];
+      const trashItems = trash[col];
       trashItems.sort((a, b) => b.from - a.from); // Sort descending to splice safely
 
       let removedCount = 0;
@@ -142,10 +143,10 @@ export default class Grid {
   /**
    * Gathers all unique Jewel objects that are marked for removal.
    */
-  getRemovedJewels(): Jewel[] {
+  private getRemovedJewels(trash: { [col: number]: TrashItem[] }): Jewel[] {
     const removed = new Set<Jewel>();
-    for (const col in this.trash) {
-      this.trash[col].forEach((item) => {
+    for (const col in trash) {
+      trash[col].forEach((item) => {
         for (let i = 0; i < item.len; i++) {
           removed.add(this.board[parseInt(col)][item.from + i]);
         }
@@ -154,27 +155,27 @@ export default class Grid {
     return Array.from(removed);
   }
 
-  checkColumns() {
+  private checkColumns(trash: { [col: number]: TrashItem[] }) {
     for (let col = 0; col < this.size; col++) {
       let runStart = 0;
       for (let row = 1; row < this.size; row++) {
         if (this.board[col][row].color !== this.board[col][runStart].color) {
           const runLength = row - runStart;
           if (runLength >= 3) {
-            if (!this.trash[col]) this.trash[col] = [];
-            this.trash[col].push({ from: runStart, len: runLength });
+            if (!trash[col]) trash[col] = [];
+            trash[col].push({ from: runStart, len: runLength });
           }
           runStart = row;
         }
       }
       if (this.size - runStart >= 3) {
-        if (!this.trash[col]) this.trash[col] = [];
-        this.trash[col].push({ from: runStart, len: this.size - runStart });
+        if (!trash[col]) trash[col] = [];
+        trash[col].push({ from: runStart, len: this.size - runStart });
       }
     }
   }
 
-  checkRows() {
+  private checkRows(trash: { [col: number]: TrashItem[] }) {
     for (let row = 0; row < this.size; row++) {
       let runStart = 0;
       for (let col = 1; col < this.size; col++) {
@@ -182,8 +183,8 @@ export default class Grid {
           const runLength = col - runStart;
           if (runLength >= 3) {
             for (let c = runStart; c < col; c++) {
-              if (!this.trash[c]) this.trash[c] = [];
-              this.trash[c].push({ from: row, len: 1 });
+              if (!trash[c]) trash[c] = [];
+              trash[c].push({ from: row, len: 1 });
             }
           }
           runStart = col;
@@ -191,28 +192,28 @@ export default class Grid {
       }
       if (this.size - runStart >= 3) {
         for (let c = runStart; c < this.size; c++) {
-          if (!this.trash[c]) this.trash[c] = [];
-          this.trash[c].push({ from: row, len: 1 });
+          if (!trash[c]) trash[c] = [];
+          trash[c].push({ from: row, len: 1 });
         }
       }
     }
   }
 
-  mergeTrash() {
-    for (const col in this.trash) {
-      if (this.trash[col].length <= 1) continue;
-      this.trash[col].sort((a, b) => a.from - b.from);
+  private mergeTrash(trash: { [col: number]: TrashItem[] }) {
+    for (const col in trash) {
+      if (trash[col].length <= 1) continue;
+      trash[col].sort((a, b) => a.from - b.from);
       let i = 0;
-      while (i < this.trash[col].length - 1) {
-        const current = this.trash[col][i];
-        const next = this.trash[col][i + 1];
+      while (i < trash[col].length - 1) {
+        const current = trash[col][i];
+        const next = trash[col][i + 1];
         if (current.from + current.len >= next.from) {
           const newEnd = Math.max(
             current.from + current.len,
             next.from + next.len,
           );
           current.len = newEnd - current.from;
-          this.trash[col].splice(i + 1, 1);
+          trash[col].splice(i + 1, 1);
         } else {
           i++;
         }
