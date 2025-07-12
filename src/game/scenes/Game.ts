@@ -7,12 +7,12 @@ const JEWEL_BASE_KEY = "jewel_base";
 const SWAP_SPEED = 200;
 const REMOVE_SPEED = 200;
 const DROP_SPEED = 300;
-const HIGHLIGHT_DELAY = 400;
+const HIGHLIGHT_DELAY = 500;
+const CASCADE_DELAY = 250;
 
 export class GameScene extends Scene {
   private grid: Grid;
   private boardContainer: Phaser.GameObjects.Container;
-  // This Map is the key to the fix. It robustly links a jewel's data to its sprite.
   private jewelSpriteMap: Map<number, Phaser.GameObjects.Sprite>;
   private firstSelection: Jewel | null = null;
   private selectionGlow: Phaser.GameObjects.Graphics | null = null;
@@ -25,7 +25,6 @@ export class GameScene extends Scene {
 
   init() {
     this.grid = new Grid();
-    // Initialize the map here
     this.jewelSpriteMap = new Map();
   }
 
@@ -74,7 +73,6 @@ export class GameScene extends Scene {
         const jewelSprite = this.add.sprite(x, y, JEWEL_BASE_KEY);
         jewelSprite.setTint(jewel.color);
         this.boardContainer.add(jewelSprite);
-        // Link the jewel's unique ID to its sprite object
         this.jewelSpriteMap.set(jewel.id, jewelSprite);
       }
     }
@@ -134,7 +132,6 @@ export class GameScene extends Scene {
       if (cascadeData && cascadeData.length > 0) {
         this.animateCascade(cascadeData, 0);
       } else {
-        // No match, swap back
         this.animateSwap(jewel1, jewel2, () => {
           this.grid.swap(jewel1, jewel2);
           this.isAnimating = false;
@@ -153,14 +150,15 @@ export class GameScene extends Scene {
     this.time.delayedCall(HIGHLIGHT_DELAY, () => {
       this.animateRemoval(matchData.removed, highlights, () => {
         this.animateDropDown(matchData, () => {
-          this.animateCascade(cascadeData, index + 1);
+          this.time.delayedCall(CASCADE_DELAY, () => {
+            this.animateCascade(cascadeData, index + 1);
+          });
         });
       });
     });
   }
 
   private animateSwap(jewel1: Jewel, jewel2: Jewel, onComplete: () => void) {
-    // Retrieve sprites directly by ID, which is much safer.
     const sprite1 = this.jewelSpriteMap.get(jewel1.id);
     const sprite2 = this.jewelSpriteMap.get(jewel2.id);
     if (!sprite1 || !sprite2) {
@@ -194,7 +192,6 @@ export class GameScene extends Scene {
       onComplete();
       return;
     }
-    // Filter out any potential nulls if a jewel somehow has no sprite.
     const jewelSprites = removed
       .map((j) => this.jewelSpriteMap.get(j.id))
       .filter(Boolean);
@@ -240,7 +237,6 @@ export class GameScene extends Scene {
       return;
     }
 
-    // A reliable pool of sprites from the jewels that were just removed.
     const reusableSprites = removed
       .map((j) => this.jewelSpriteMap.get(j.id))
       .filter(Boolean);
@@ -251,7 +247,7 @@ export class GameScene extends Scene {
       if (!sprite) {
         onAnimComplete();
         return;
-      } // Safety check
+      }
       const { y } = this.getSpritePosition(jewel.row, jewel.col);
       this.tweens.add({
         targets: sprite,
@@ -265,18 +261,17 @@ export class GameScene extends Scene {
     newJewels.forEach((jewel) => {
       animations++;
       const { x, y } = this.getSpritePosition(jewel.row, jewel.col);
-      // Get a sprite from the pool or create a new one as a fallback.
       const sprite =
         reusableSprites.pop() || this.add.sprite(x, y, JEWEL_BASE_KEY);
       if (!sprite.scene) {
         this.add.existing(sprite);
-      } // Add to scene if it was removed
+      }
 
       sprite.x = x;
-      sprite.y = y - this.grid.cellSize * this.grid.size; // Start off-screen
+      sprite.y = y - this.grid.cellSize * this.grid.size;
       sprite.setTint(jewel.color).setAlpha(1).setScale(1);
 
-      this.jewelSpriteMap.set(jewel.id, sprite); // Link new jewel to its sprite
+      this.jewelSpriteMap.set(jewel.id, sprite);
 
       this.tweens.add({
         targets: sprite,
@@ -288,49 +283,59 @@ export class GameScene extends Scene {
     });
   }
 
+  /**
+   * **REWRITTEN LOGIC**
+   * This function has been rewritten to be more robust. It now separates data processing
+   * from drawing to prevent the state errors that were causing crashes.
+   */
   private showHighlights(
     trash: MatchData["trash"],
   ): Phaser.GameObjects.Graphics[] {
     const activeHighlights: Phaser.GameObjects.Graphics[] = [];
     let poolIndex = 0;
-    const singleCellTrash: { [col: number]: { from: number; len: number }[] } =
-      {};
+
+    // 1. Data processing phase: Separate matches into vertical and horizontal groups.
+    const verticalRuns: { col: number; from: number; len: number }[] = [];
+    const horizontalCandidates: { [row: number]: number[] } = {};
+
     for (const colStr in trash) {
+      if (!Object.prototype.hasOwnProperty.call(trash, colStr)) continue;
+
       const col = parseInt(colStr);
-      singleCellTrash[col] = [];
       trash[col].forEach((item) => {
         if (item.len > 1) {
-          if (poolIndex >= this.highlightPool.length) return;
-          const highlightRect = this.highlightPool[poolIndex++];
-          const startPos = this.getSpritePosition(item.from, col);
-          const endPos = this.getSpritePosition(item.from + item.len - 1, col);
-          this.drawHighlightRect(
-            highlightRect,
-            startPos.x - this.grid.cellSize / 2,
-            endPos.y - this.grid.cellSize / 2,
-            this.grid.cellSize,
-            this.grid.cellSize * item.len,
-          );
-          activeHighlights.push(highlightRect);
+          verticalRuns.push({ col, from: item.from, len: item.len });
         } else {
-          singleCellTrash[col].push(item);
+          if (!horizontalCandidates[item.from]) {
+            horizontalCandidates[item.from] = [];
+          }
+          horizontalCandidates[item.from].push(col);
         }
       });
     }
-    const groupedByRow: { [row: number]: number[] } = {};
-    for (const colStr in singleCellTrash) {
-      const col = parseInt(colStr);
-      singleCellTrash[col].forEach((item) => {
-        if (!groupedByRow[item.from]) {
-          groupedByRow[item.from] = [];
-        }
-        groupedByRow[item.from].push(col);
-      });
-    }
-    for (const rowStr in groupedByRow) {
+
+    // 2. Drawing phase for vertical runs
+    verticalRuns.forEach((run) => {
+      if (poolIndex >= this.highlightPool.length) return;
+      const highlightRect = this.highlightPool[poolIndex++];
+      const startPos = this.getSpritePosition(run.from, run.col);
+      const endPos = this.getSpritePosition(run.from + run.len - 1, run.col);
+      this.drawHighlightRect(
+        highlightRect,
+        startPos.x - this.grid.cellSize / 2,
+        endPos.y - this.grid.cellSize / 2,
+        this.grid.cellSize,
+        this.grid.cellSize * run.len,
+      );
+      activeHighlights.push(highlightRect);
+    });
+
+    // 3. Processing and drawing phase for horizontal runs
+    for (const rowStr in horizontalCandidates) {
       const row = parseInt(rowStr);
-      const cols = groupedByRow[row].sort((a, b) => a - b);
+      const cols = horizontalCandidates[row].sort((a, b) => a - b);
       if (cols.length < 3) continue;
+
       let currentRun = [cols[0]];
       for (let i = 1; i < cols.length; i++) {
         if (cols[i] === cols[i - 1] + 1) {
