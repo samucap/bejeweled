@@ -9,14 +9,12 @@ import { AUTO, Game } from "phaser";
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
-  width: 640,
+  width: 900,
   height: 640,
   parent: "board",
   backgroundColor: "transparent",
   scene: [
-    AnimatedScene,
-    //Boot,
-    //Preloader,
+    //AnimatedScene,
     //MainMenu,
     GameScene,
     //GameOver

@@ -3,12 +3,15 @@ import Grid, { MatchData } from "./grid";
 import Jewel from "./jewel";
 
 const JEWEL_SIZE = 70;
+const PARTICLE_SIZE = 16;
 const JEWEL_BASE_KEY = "jewel_base";
+const PARTICLE_KEY = "particle";
 const SWAP_SPEED = 200;
-const REMOVE_SPEED = 200;
+const REMOVE_SPEED = 300;
 const DROP_SPEED = 300;
 const HIGHLIGHT_DELAY = 500;
 const CASCADE_DELAY = 250;
+const PARTICLE_BURST_COUNT = 15;
 
 export class GameScene extends Scene {
   private grid: Grid;
@@ -16,8 +19,19 @@ export class GameScene extends Scene {
   private jewelSpriteMap: Map<number, Phaser.GameObjects.Sprite>;
   private firstSelection: Jewel | null = null;
   private selectionGlow: Phaser.GameObjects.Graphics | null = null;
+  private selectionTween: Phaser.Tweens.Tween | null = null;
   private highlightPool: Phaser.GameObjects.Graphics[] = [];
   private isAnimating = false;
+  private score: number = 0;
+  private currentLevel: number = 1;
+  private multiplier: number = 1;
+  private progress: number = 0;
+  private pointsNeeded: number = 1000;
+  private scoreText!: Phaser.GameObjects.Text;
+  private levelText!: Phaser.GameObjects.Text;
+  private progressBar!: Phaser.GameObjects.Graphics;
+  private progressBg!: Phaser.GameObjects.Graphics;
+  private scorePanel!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super("GameScene");
@@ -26,27 +40,140 @@ export class GameScene extends Scene {
   init() {
     this.grid = new Grid();
     this.jewelSpriteMap = new Map();
+    this.multiplier = 1 + (this.currentLevel - 1) * 0.5;
+    this.pointsNeeded = 1000 * this.currentLevel;
+    this.scale.setGameSize(900, 700); // Increased height to fit progress bar under board
   }
 
   preload() {
-    const graphics = this.make.graphics();
+    let graphics = this.make.graphics();
     graphics.fillStyle(0xffffff);
     graphics.fillRoundedRect(0, 0, JEWEL_SIZE, JEWEL_SIZE, 12);
     graphics.generateTexture(JEWEL_BASE_KEY, JEWEL_SIZE, JEWEL_SIZE);
+
+    graphics.clear();
+    graphics.fillStyle(0xffffff);
+    graphics.fillCircle(
+      PARTICLE_SIZE / 2,
+      PARTICLE_SIZE / 2,
+      PARTICLE_SIZE / 2,
+    );
+    graphics.generateTexture(PARTICLE_KEY, PARTICLE_SIZE, PARTICLE_SIZE);
     graphics.destroy();
   }
 
   create() {
+    this.boardContainer = this.add.container(
+      this.scale.width / 2 - 100,
+      this.scale.height / 2 - 35, // Shifted up to make space for progress bar
+    );
+
     this.createBoardView();
     this.setupInputHandler();
+
+    const panelX = this.scale.width - 230;
+    const panelY =
+      this.scale.height / 2 - (this.grid.size * this.grid.cellSize) / 2 - 35; // Align with top of board
+    const panelWidth = 200;
+    const panelHeight = 200; // Adjusted height since progress bar is moved
+
+    this.scorePanel = this.add.graphics();
+    this.scorePanel.fillStyle(0x000000, 0.7);
+    this.scorePanel.fillRoundedRect(
+      panelX,
+      panelY,
+      panelWidth,
+      panelHeight,
+      12,
+    );
+
+    this.scoreText = this.add.text(panelX + 20, panelY + 20, "Score: 0", {
+      fontSize: "32px",
+      color: "#ffffff",
+      fontStyle: "bold",
+      fontFamily: "Arial",
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: "#000000",
+        blur: 4,
+        stroke: true,
+        fill: true,
+      },
+    });
+
+    this.levelText = this.add.text(panelX + 20, panelY + 70, "Level: 1", {
+      fontSize: "28px",
+      color: "#ffffff",
+      fontStyle: "bold",
+      fontFamily: "Arial",
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: "#000000",
+        blur: 4,
+        stroke: true,
+        fill: true,
+      },
+    });
+
+    // Progress bar under the board
+    const barX =
+      this.boardContainer.x - (this.grid.size * this.grid.cellSize) / 2;
+    const barY =
+      this.scale.height / 2 -
+      35 +
+      (this.grid.size * this.grid.cellSize) / 2 +
+      10; // 10px padding under board
+    const barWidth = this.grid.size * this.grid.cellSize; // Same as board width
+    const barHeight = 20;
+
+    this.progressBar = this.add.graphics();
+    this.progressBar.fillStyle(0x00ff00, 1);
+    this.progressBar.fillRoundedRect(barX, barY, 0, barHeight, 6);
+
+    this.tweens.add({
+      targets: this.scorePanel,
+      scaleX: 1.02,
+      scaleY: 1.02,
+      duration: 600,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  private updateProgressBar() {
+    const barX =
+      this.boardContainer.x - (this.grid.size * this.grid.cellSize) / 2;
+    const barY =
+      this.scale.height / 2 -
+      35 +
+      (this.grid.size * this.grid.cellSize) / 2 +
+      10;
+    const barWidth = this.grid.size * this.grid.cellSize;
+    const barHeight = 20;
+    const targetWidth = barWidth * (this.progress / this.pointsNeeded);
+    this.tweens.add({
+      targets: { width: this.progressBar.w || 0 },
+      width: targetWidth,
+      duration: 500,
+      ease: "Sine.easeInOut",
+      onUpdate: (tween) => {
+        this.progressBar.clear();
+        this.progressBar.fillStyle(0x00ff00, 1);
+        this.progressBar.fillRoundedRect(
+          barX,
+          barY,
+          tween.getValue() || 0,
+          barHeight,
+          6,
+        );
+      },
+    });
   }
 
   private createBoardView() {
-    this.boardContainer = this.add.container(
-      this.scale.width / 2,
-      this.scale.height / 2,
-    );
-
     const gridGraphics = this.add.graphics();
     this.boardContainer.add(gridGraphics);
 
@@ -132,10 +259,16 @@ export class GameScene extends Scene {
       if (cascadeData && cascadeData.length > 0) {
         this.animateCascade(cascadeData, 0);
       } else {
-        this.animateSwap(jewel1, jewel2, () => {
-          this.grid.swap(jewel1, jewel2);
-          this.isAnimating = false;
-        });
+        this.animateSwap(
+          jewel1,
+          jewel2,
+          () => {
+            this.grid.swap(jewel1, jewel2);
+            this.isAnimating = false;
+          },
+          SWAP_SPEED / 2,
+          "Elastic.easeOut",
+        );
       }
     });
   }
@@ -143,6 +276,29 @@ export class GameScene extends Scene {
   private animateCascade(cascadeData: MatchData[], index: number) {
     if (index >= cascadeData.length) {
       this.isAnimating = false;
+      if (!this.grid.hasPossibleMoves()) {
+        const gameOverText = this.add
+          .text(
+            this.scale.width / 2 - 100,
+            this.scale.height / 2 - 35,
+            "Game Over",
+            {
+              fontSize: "64px",
+              color: "#ff0000",
+              fontStyle: "bold",
+              shadow: {
+                offsetX: 3,
+                offsetY: 3,
+                color: "#000000",
+                blur: 5,
+                stroke: true,
+                fill: true,
+              },
+            },
+          )
+          .setOrigin(0.5);
+        this.input.enabled = false;
+      }
       return;
     }
     const matchData = cascadeData[index];
@@ -150,6 +306,33 @@ export class GameScene extends Scene {
     this.time.delayedCall(HIGHLIGHT_DELAY, () => {
       this.animateRemoval(matchData.removed, highlights, () => {
         this.animateDropDown(matchData, () => {
+          const stepScore = matchData.score;
+          const multiplied = stepScore * this.multiplier;
+          this.score += multiplied;
+          this.progress += stepScore;
+          this.scoreText.setText(`Score: ${Math.floor(this.score)}`);
+          this.tweens.add({
+            targets: this.scoreText,
+            scale: 1.1,
+            duration: 200,
+            yoyo: true,
+            ease: "Sine.easeInOut",
+          });
+          while (this.progress >= this.pointsNeeded) {
+            this.progress -= this.pointsNeeded;
+            this.currentLevel++;
+            this.multiplier = 1 + (this.currentLevel - 1) * 0.5;
+            this.pointsNeeded = 1000 * this.currentLevel;
+            this.levelText.setText(`Level: ${this.currentLevel}`);
+            this.tweens.add({
+              targets: this.levelText,
+              scale: 1.1,
+              duration: 200,
+              yoyo: true,
+              ease: "Sine.easeInOut",
+            });
+          }
+          this.updateProgressBar();
           this.time.delayedCall(CASCADE_DELAY, () => {
             this.animateCascade(cascadeData, index + 1);
           });
@@ -158,7 +341,13 @@ export class GameScene extends Scene {
     });
   }
 
-  private animateSwap(jewel1: Jewel, jewel2: Jewel, onComplete: () => void) {
+  private animateSwap(
+    jewel1: Jewel,
+    jewel2: Jewel,
+    onComplete: () => void,
+    duration: number = SWAP_SPEED,
+    easing: string = "Cubic.easeInOut",
+  ) {
     const sprite1 = this.jewelSpriteMap.get(jewel1.id);
     const sprite2 = this.jewelSpriteMap.get(jewel2.id);
     if (!sprite1 || !sprite2) {
@@ -170,15 +359,15 @@ export class GameScene extends Scene {
       targets: sprite1,
       x: sprite2.x,
       y: sprite2.y,
-      duration: SWAP_SPEED,
-      ease: "quad.out",
+      duration,
+      ease: easing,
     });
     this.tweens.add({
       targets: sprite2,
       x: sprite1.x,
       y: sprite1.y,
-      duration: SWAP_SPEED,
-      ease: "quad.out",
+      duration,
+      ease: easing,
       onComplete,
     });
   }
@@ -194,7 +383,7 @@ export class GameScene extends Scene {
     }
     const jewelSprites = removed
       .map((j) => this.jewelSpriteMap.get(j.id))
-      .filter(Boolean);
+      .filter(Boolean) as Phaser.GameObjects.Sprite[];
 
     if (highlights && highlights.length > 0) {
       this.tweens.add({
@@ -206,18 +395,41 @@ export class GameScene extends Scene {
     }
 
     if (jewelSprites.length > 0) {
-      this.tweens.add({
-        targets: jewelSprites,
-        scale: 0,
-        alpha: 0,
-        duration: REMOVE_SPEED,
-        ease: "quad.in",
-        onComplete: () => {
-          if (highlights) {
-            highlights.forEach((h) => h.setVisible(false));
-          }
-          onComplete();
-        },
+      let completedCount = 0;
+      jewelSprites.forEach((sprite, idx) => {
+        const jewel = removed[idx];
+        const emitter = this.add.particles(sprite.x, sprite.y, PARTICLE_KEY, {
+          speed: { min: 100, max: 300 },
+          angle: { min: 0, max: 360 },
+          scale: { start: 0.5, end: 0 },
+          lifespan: 400,
+          blendMode: "ADD",
+          tint: jewel.color,
+          quantity: PARTICLE_BURST_COUNT,
+        });
+        emitter.explode(PARTICLE_BURST_COUNT);
+
+        this.time.delayedCall(500, () => {
+          emitter.destroy();
+        });
+
+        this.tweens.add({
+          targets: sprite,
+          angle: 180,
+          scale: 0,
+          alpha: 0,
+          duration: REMOVE_SPEED,
+          ease: "quad.in",
+          onComplete: () => {
+            completedCount++;
+            if (completedCount === jewelSprites.length) {
+              if (highlights) {
+                highlights.forEach((h) => h.setVisible(false));
+              }
+              onComplete();
+            }
+          },
+        });
       });
     } else {
       onComplete();
@@ -253,7 +465,7 @@ export class GameScene extends Scene {
         targets: sprite,
         y,
         duration: DROP_SPEED,
-        ease: "quad.out",
+        ease: "Bounce.easeOut",
         onComplete: onAnimComplete,
       });
     });
@@ -277,24 +489,18 @@ export class GameScene extends Scene {
         targets: sprite,
         y,
         duration: DROP_SPEED,
-        ease: "quad.out",
+        ease: "Bounce.easeOut",
         onComplete: onAnimComplete,
       });
     });
   }
 
-  /**
-   * **REWRITTEN LOGIC**
-   * This function has been rewritten to be more robust. It now separates data processing
-   * from drawing to prevent the state errors that were causing crashes.
-   */
   private showHighlights(
     trash: MatchData["trash"],
   ): Phaser.GameObjects.Graphics[] {
     const activeHighlights: Phaser.GameObjects.Graphics[] = [];
     let poolIndex = 0;
 
-    // 1. Data processing phase: Separate matches into vertical and horizontal groups.
     const verticalRuns: { col: number; from: number; len: number }[] = [];
     const horizontalCandidates: { [row: number]: number[] } = {};
 
@@ -314,7 +520,6 @@ export class GameScene extends Scene {
       });
     }
 
-    // 2. Drawing phase for vertical runs
     verticalRuns.forEach((run) => {
       if (poolIndex >= this.highlightPool.length) return;
       const highlightRect = this.highlightPool[poolIndex++];
@@ -327,10 +532,16 @@ export class GameScene extends Scene {
         this.grid.cellSize,
         this.grid.cellSize * run.len,
       );
+      this.tweens.add({
+        targets: highlightRect,
+        scale: 1.05,
+        duration: 200,
+        yoyo: true,
+        repeat: 1,
+      });
       activeHighlights.push(highlightRect);
     });
 
-    // 3. Processing and drawing phase for horizontal runs
     for (const rowStr in horizontalCandidates) {
       const row = parseInt(rowStr);
       const cols = horizontalCandidates[row].sort((a, b) => a - b);
@@ -352,6 +563,13 @@ export class GameScene extends Scene {
               currentRun.length * this.grid.cellSize,
               this.grid.cellSize,
             );
+            this.tweens.add({
+              targets: highlightRect,
+              scale: 1.05,
+              duration: 200,
+              yoyo: true,
+              repeat: 1,
+            });
             activeHighlights.push(highlightRect);
           }
           currentRun = [cols[i]];
@@ -368,6 +586,13 @@ export class GameScene extends Scene {
             currentRun.length * this.grid.cellSize,
             this.grid.cellSize,
           );
+          this.tweens.add({
+            targets: highlightRect,
+            scale: 1.05,
+            duration: 200,
+            yoyo: true,
+            repeat: 1,
+          });
           activeHighlights.push(highlightRect);
         }
       }
@@ -385,7 +610,7 @@ export class GameScene extends Scene {
     rect.clear();
     rect.fillStyle(0xffffff, 0.4);
     rect.fillRoundedRect(0, 0, width, height, 12);
-    rect.setPosition(x, y).setVisible(true).setAlpha(0);
+    rect.setPosition(x, y).setVisible(true).setAlpha(0).setScale(1);
     this.tweens.add({
       targets: rect,
       alpha: 1,
@@ -405,16 +630,13 @@ export class GameScene extends Scene {
   }
 
   private getGridPosition(pointer: Phaser.Input.Pointer) {
-    const touchPoint = this.boardContainer.pointToContainer(
-      pointer,
-    ) as Phaser.Math.Vector2;
+    const touchX = pointer.x - this.boardContainer.x;
+    const touchY = pointer.y - this.boardContainer.y;
     const col = Math.floor(
-      (touchPoint.x + (this.grid.size * this.grid.cellSize) / 2) /
-        this.grid.cellSize,
+      (touchX + (this.grid.size * this.grid.cellSize) / 2) / this.grid.cellSize,
     );
     const viewRow = Math.floor(
-      (touchPoint.y + (this.grid.size * this.grid.cellSize) / 2) /
-        this.grid.cellSize,
+      (touchY + (this.grid.size * this.grid.cellSize) / 2) / this.grid.cellSize,
     );
     const row = this.grid.size - 1 - viewRow;
     return { row, col };
@@ -435,11 +657,28 @@ export class GameScene extends Scene {
       yoyo: true,
       repeat: -1,
     });
+
+    const sprite = this.jewelSpriteMap.get(this.grid.board[col][row].id);
+    if (sprite) {
+      this.selectionTween = this.tweens.add({
+        targets: sprite,
+        scale: 1.1,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
   }
 
   private hideSelectionIndicator() {
     if (!this.selectionGlow) return;
     this.tweens.killTweensOf(this.selectionGlow);
     this.selectionGlow.setAlpha(1).setVisible(false);
+
+    if (this.selectionTween) {
+      this.selectionTween.stop();
+      (this.selectionTween.targets[0] as Phaser.GameObjects.Sprite).setScale(1);
+      this.selectionTween = null;
+    }
   }
 }

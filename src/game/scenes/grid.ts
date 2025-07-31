@@ -10,6 +10,7 @@ export interface MatchData {
   slid: { jewel: Jewel; fromRow: number; toRow: number }[];
   new: Jewel[];
   trash: { [col: number]: TrashItem[] };
+  score: number;
 }
 
 export default class Grid {
@@ -72,17 +73,50 @@ export default class Grid {
     const cascade: MatchData[] = [];
     while (true) {
       const currentTrash: { [col: number]: TrashItem[] } = {};
-      this.checkColumns(currentTrash);
-      this.checkRows(currentTrash);
+      let stepScore = 0;
+      stepScore += this.checkColumns(currentTrash);
+      stepScore += this.checkRows(currentTrash);
       if (Object.keys(currentTrash).length === 0) break;
       this.mergeTrash(currentTrash);
       const removed = this.getRemovedJewels(currentTrash);
       const beforeState = this.board.map((col) => [...col]);
       this.cleanTrash(currentTrash);
       const { slid, new: newJewels } = this.deriveChanges(beforeState);
-      cascade.push({ removed, slid, new: newJewels, trash: currentTrash });
+      cascade.push({
+        removed,
+        slid,
+        new: newJewels,
+        trash: currentTrash,
+        score: stepScore,
+      });
     }
     return cascade.length > 0 ? cascade : null;
+  }
+
+  public hasPossibleMoves(): boolean {
+    // Check horizontal swaps
+    for (let col = 0; col < this.size - 1; col++) {
+      for (let row = 0; row < this.size; row++) {
+        this.swap(this.board[col][row], this.board[col + 1][row]);
+        const tempTrash: { [col: number]: TrashItem[] } = {};
+        this.checkColumns(tempTrash);
+        this.checkRows(tempTrash);
+        this.swap(this.board[col][row], this.board[col + 1][row]);
+        if (Object.keys(tempTrash).length > 0) return true;
+      }
+    }
+    // Check vertical swaps
+    for (let col = 0; col < this.size; col++) {
+      for (let row = 0; row < this.size - 1; row++) {
+        this.swap(this.board[col][row], this.board[col][row + 1]);
+        const tempTrash: { [col: number]: TrashItem[] } = {};
+        this.checkColumns(tempTrash);
+        this.checkRows(tempTrash);
+        this.swap(this.board[col][row], this.board[col][row + 1]);
+        if (Object.keys(tempTrash).length > 0) return true;
+      }
+    }
+    return false;
   }
 
   private deriveChanges(beforeState: Jewel[][]) {
@@ -134,7 +168,8 @@ export default class Grid {
     return Array.from(removed);
   }
 
-  private checkColumns(trash: { [col: number]: TrashItem[] }) {
+  private checkColumns(trash: { [col: number]: TrashItem[] }): number {
+    let score = 0;
     for (let col = 0; col < this.size; col++) {
       let runStart = 0;
       for (let row = 1; row < this.size; row++) {
@@ -143,24 +178,30 @@ export default class Grid {
           if (runLength >= 3) {
             if (!trash[col]) trash[col] = [];
             trash[col].push({ from: runStart, len: runLength });
+            score += 50 * (runLength - 2);
           }
           runStart = row;
         }
       }
-      if (this.size - runStart >= 3) {
+      const runLength = this.size - runStart;
+      if (runLength >= 3) {
         if (!trash[col]) trash[col] = [];
-        trash[col].push({ from: runStart, len: this.size - runStart });
+        trash[col].push({ from: runStart, len: runLength });
+        score += 50 * (runLength - 2);
       }
     }
+    return score;
   }
 
-  private checkRows(trash: { [col: number]: TrashItem[] }) {
+  private checkRows(trash: { [col: number]: TrashItem[] }): number {
+    let score = 0;
     for (let row = 0; row < this.size; row++) {
       let runStart = 0;
       for (let col = 1; col < this.size; col++) {
         if (this.board[col][row].color !== this.board[runStart][row].color) {
           const runLength = col - runStart;
           if (runLength >= 3) {
+            score += 50 * (runLength - 2);
             for (let c = runStart; c < col; c++) {
               if (!trash[c]) trash[c] = [];
               trash[c].push({ from: row, len: 1 });
@@ -169,13 +210,16 @@ export default class Grid {
           runStart = col;
         }
       }
-      if (this.size - runStart >= 3) {
+      const runLength = this.size - runStart;
+      if (runLength >= 3) {
+        score += 50 * (runLength - 2);
         for (let c = runStart; c < this.size; c++) {
           if (!trash[c]) trash[c] = [];
           trash[c].push({ from: row, len: 1 });
         }
       }
     }
+    return score;
   }
 
   private mergeTrash(trash: { [col: number]: TrashItem[] }) {
