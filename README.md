@@ -167,3 +167,5 @@ All rights reserved.
 # TODO
 
 - fix level progress bar so that it'll increment and not re-render everytime
+- add a button to shuffle jewels, but loses points
+- remove the if no more moves game over
